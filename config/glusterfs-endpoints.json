@@ -1,0 +1,25 @@
+{
+  "kind": "Endpoints",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "glusterfs-cluster",
+	"namespace": "bio-system"
+  },
+  "subsets": [
+    {
+      "addresses": [
+        {
+          "ip": "10.61.0.91"
+        },
+		{
+		  "ip": "10.61.0.92"
+		}
+      ],
+      "ports": [
+        {
+          "port": 1
+        }
+      ]
+    }
+  ]
+}

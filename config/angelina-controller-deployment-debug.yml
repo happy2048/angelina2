@@ -1,0 +1,63 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: angelina-controller-debug
+  namespace: bio-system
+  labels:
+    app: angelina-controller-debug
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+       app: angelina-controller-debug
+  template:
+    metadata:
+      labels:
+        app: angelina-controller-debug
+    spec:
+      hostname: "goenv"
+      containers:
+      - name: angelina-controller-debug
+        image: registry.vega.com:5000/step:1.0
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        env:
+        - name: REDIS_ADDR
+          value: angelina-redis
+        - name: REDIS_PORT
+          value: "6380"
+        - name: ANGELINA_SERVER
+          value: ":6300"
+        - name: GOPATH
+          value: "/mnt/code/gopath"
+        ports:
+        - containerPort: 6300
+          protocol: UDP
+        - containerPort: 6300
+          protocol: TCP
+        - containerPort: 22
+          protocol: TCP 
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/data
+        - name: refer
+          mountPath: /mnt/refer 
+        - name: code
+          mountPath: /mnt/code
+      volumes:
+      - name: data
+        glusterfs:
+          endpoints: glusterfs-cluster
+          path: data-volume
+          readOnly: false   
+      - name: refer
+        glusterfs:
+          endpoints: glusterfs-cluster
+          path: refer-volume
+          readOnly: true  
+      - name: code
+        glusterfs:
+          endpoints: glusterfs-cluster
+          path: code-volume
+          readOnly: false  

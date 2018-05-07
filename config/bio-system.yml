@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+   name: bio-system
+   labels:
+      name: bio-system

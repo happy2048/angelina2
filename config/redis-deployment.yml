@@ -1,0 +1,35 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: angelina-redis
+  namespace: bio-system
+  labels:
+    app: angelina-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+       app: angelina-redis
+  template:
+    metadata:
+      labels:
+        app: angelina-redis
+    spec:
+      containers:
+      - name: angelina-redis
+        image: redis:3.0
+        command:
+          - redis-server
+          - "--appendonly"
+          - "yes"
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: data
+          mountPath: /data 
+      volumes:
+      - name: data
+        glusterfs:
+          endpoints: glusterfs-cluster
+          path: redis-volume
+          readOnly: false   

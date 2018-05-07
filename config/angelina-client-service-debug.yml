@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: angelina-client-debug
+  namespace: bio-system
+spec:
+  type: NodePort
+  ports:
+  - name: restful
+    port: 6300
+    protocol: TCP
+    targetPort: 6300
+    nodePort: 32100
+  - name: ssh
+    port: 2300
+    protocol: TCP
+    targetPort: 22
+    nodePort: 32000
+  selector:
+    app: angelina-controller-debug

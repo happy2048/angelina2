@@ -1,0 +1,48 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: angelina-controller
+  namespace: bio-system
+  labels:
+    app: angelina-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+       app: angelina-controller
+  template:
+    metadata:
+      labels:
+        app: angelina-controller
+    spec:
+      containers:
+      - name: angelina-controller
+        image: happy365/angelina-controller:2.0
+        env:
+        - name: ANGELINA_REDIS_ADDR
+          value: angelina-redis
+        - name: ANGELINA_REDIS_PORT
+          value: "6380"
+        - name: ANGELINA_SERVER
+          value: ":6300"
+        ports:
+        - containerPort: 6300
+          protocol: UDP
+        - containerPort: 6300
+          protocol: TCP
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/data
+        - name: refer
+          mountPath: /mnt/refer 
+      volumes:
+      - name: data
+        glusterfs:
+          endpoints: glusterfs-cluster
+          path: data-volume
+          readOnly: false   
+      - name: refer
+        glusterfs:
+          endpoints: glusterfs-cluster
+          path: refer-volume
+          readOnly: true  

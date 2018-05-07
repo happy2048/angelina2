@@ -1,0 +1,13 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "glusterfs-cluster",
+	"namespace": "bio-system"
+  },
+  "spec": {
+    "ports": [
+      {"port": 1}
+    ]
+  }
+}
