@@ -1,5 +1,5 @@
 FROM centos:7.3.1611
-ENV BaseUrl https://github.com/happy2048/angelina/blob/master
+ENV BaseUrl https://github.com/happy2048/angelina2/blob/master
 RUN yum install epel-release -y
 RUN yum install wget git -y
 EXPOSE 6300
