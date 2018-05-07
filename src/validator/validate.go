@@ -11,13 +11,13 @@ import(
 )
 type Step struct {
     Command string `json:command`
-	TmpArgs []string 
+	TmpArgs []string  `json:"-"`
 	CommandName string `json:commandName`
     Args string `json:args`
     Container string `json:container`
     Prestep []string `json:prestep`
     SubArgs []string `json:subArgs`
-	CmdArray []string 
+	CmdArray []string `json:"-"`
 	CommandCount string `json:commandCount`
 }
 type Validator struct {
