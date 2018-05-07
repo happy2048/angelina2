@@ -198,9 +198,9 @@ input域说明：
 			"a.txt ==> b.txt"
 		]
 	（2）上面的例子表达的意思是: 
-			a.将input目录当中带有“_R1.fastq.gz”后缀的文件，复制到glusterfs中，并且解压缩成test1_R1.fastq(目前只支持gzip的解压缩)；
-			b.将input目录当中带有“_R2.fastq.gz”后缀的文件，复制到glusterfs中，并且解压缩成test1_R2.fastq；
-			c.将input目录当中的a.txt复制到glusterfs，并且重命名为b.txt
+		a.将input目录当中带有“_R1.fastq.gz”后缀的文件，复制到glusterfs中，并且解压缩成test1_R1.fastq(目前只支持gzip的解压缩)；
+		b.将input目录当中带有“_R2.fastq.gz”后缀的文件，复制到glusterfs中，并且解压缩成test1_R2.fastq；
+		c.将input目录当中的a.txt复制到glusterfs，并且重命名为b.txt
 	（3） 该域中input目录下每一个匹配到的文件最多只能一个，例如“*_R1.fastq.gz ==> test1_R1.fastq”中，匹配到“*_R1.fastq.gz”的文件至多只有一个，假设在input目录当中有“test_R1.fastq.gz”和“test1_R1.fastq.gz”，将会报错，因为不知道将哪一个文件转化为"test1_R1.fastq"。
 	（4）从input目录下复制的所有文件，将会存放在： glusterfs:data-volume/jobName/step0下 （data-volume是之前我们创建的job数据存放目录,jobName是每一个job的名称）
 	
