@@ -212,7 +212,7 @@ params域的说明：
 			"TRIM": "/root/Trimmomatic-0.36/trimmomatic-0.36.jar",
 			"TRIMDIR":"/root/Trimmomatic-0.36"
 		},
-	比如上面的例子的当中，可以在命令行通过“-e  FASTQC=5”动态修改这个值。
+		比如上面的例子的当中，可以在命令行通过“-e  FASTQC=5”动态修改这个值。
 	（2）在step当中引用params里面的值，比如在step当中需要使用“/root/Trimmomatic-0.36” 这个值，可以在step中使用“params@TRIMDIR”替换。
 
 
@@ -243,8 +243,8 @@ step域说明：
         	"args":["name","30"],
         	"sub-args": ["a.out","b.out"]
 		}
-	angelina会启动两个registry.vega.com:5000/test:1.0 类型的容器来运行step2，第一个容器运行的命令是：“/bin/bash  /root/test.sh name 30 a.out”,第二个容器运行的命令是“/bin/bash /root/test.sh name 30 b.out”
-	启动容器的数量有sub-args数组长度确定。
+		angelina会启动两个registry.vega.com:5000/test:1.0 类型的容器来运行step2，第一个容器运行的命令是：“/bin/bash  /root/test.sh name 30 a.out”,第二个容器运行的命令是“/bin/bash /root/test.sh name 30 b.out”
+		启动容器的数量有sub-args数组长度确定。
 	（3）如果该step只需要运行一个命令，那么只需要将sub-args留空就行，那么运行的命令就是command + args。
 	（4）如果在该step当中需要引用pre-steps当中的一些文件，可以使用pre-step的名称+“@”来实现，例如下面：
 		"step2": {
