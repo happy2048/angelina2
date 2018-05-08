@@ -39,7 +39,6 @@ angelina主要就是解决上面的任务执行顺序。
 
 （1）angelina架构图如下图所示：
 
-#![](http://files.happy366.cn/files/images/angelina-structure1.png)
 
  angelina controller架构图如下所示：
 
