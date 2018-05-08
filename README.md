@@ -11,7 +11,7 @@ Angelina: 一款开源的，适用于生物信息学分析的任务调度系统�
 	2.执行的顺序是: 任务1 --> 任务2，任务3 --> 任务4
 	3.任务2和任务3是并行执行
 
-#![](http://files.happy366.cn/files/images/task_sample.png)
+![](http://files.happy366.cn/files/images/task_sample.png)
 
 angelina主要就是解决上面的任务执行顺序。
 
@@ -39,7 +39,7 @@ angelina主要就是解决上面的任务执行顺序。
 
 （1）angelina架构图如下图所示：
 
-![](http://files.happy366.cn/files/images/angelina-structure1.png)
+#![](http://files.happy366.cn/files/images/angelina-structure1.png)
 
  angelina controller架构图如下所示：
 
