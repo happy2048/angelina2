@@ -33,7 +33,7 @@ angelina主要就是解决上面的任务执行顺序。
 
 **安装**
 
-参考文档： [angelina安装](https://github.com/happy2048/angelina/blob/master/INSTALL.md)
+参考文档： [angelina安装](https://github.com/happy2048/angelina2/blob/master/INSTALL.md)
 
 **angelina架构图：**
 
