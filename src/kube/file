@@ -1,0 +1,1531 @@
+{
+  "kind": "NodeList",
+  "apiVersion": "v1",
+  "metadata": {
+    "selfLink": "/api/v1/nodes",
+    "resourceVersion": "14413951"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "virt2",
+        "selfLink": "/api/v1/nodes/virt2",
+        "uid": "afd76818-f5b1-11e7-a55c-90b11c06b5e3",
+        "resourceVersion": "14413948",
+        "creationTimestamp": "2018-01-10T02:55:16Z",
+        "labels": {
+          "kubernetes.io/hostname": "virt2",
+          "node-role.kubernetes.io/master": "true",
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/os": "linux"
+        },
+        "annotations": {
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.244.0.0/24",
+        "externalID": "virt2",
+        "taints": [
+          {
+            "key": "key",
+            "value": "value",
+            "effect": "NoSchedule",
+            "timeAdded": null
+          }
+        ]
+      },
+      "status": {
+        "capacity": {
+          "cpu": "16",
+          "memory": "32766312Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "16",
+          "memory": "32663912Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "OutOfDisk",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:01:01Z",
+            "lastTransitionTime": "2018-01-10T02:55:16Z",
+            "reason": "KubeletHasSufficientDisk",
+            "message": "kubelet has sufficient disk space available"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:01:01Z",
+            "lastTransitionTime": "2018-02-25T02:13:33Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:01:01Z",
+            "lastTransitionTime": "2018-02-25T02:13:33Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2018-05-08T13:01:01Z",
+            "lastTransitionTime": "2018-05-03T03:39:03Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "10.61.0.86"
+          },
+          {
+            "type": "Hostname",
+            "address": "virt2"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "ab06061368f24d9384ac409527cbc7ed",
+          "systemUUID": "44454C4C-5700-1051-804A-C3C04F463358",
+          "bootID": "71bf5a86-249e-4396-ad60-c5bb095a490b",
+          "kernelVersion": "3.10.0-327.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://1.12.6",
+          "kubeletVersion": "v1.8.6",
+          "kubeProxyVersion": "v1.8.6",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "docker.io/broadgdac/gistic2_analysis@sha256:d783733948737013f40fd82bd8c87fc8015614103e13a8eea0d2926589921278",
+              "docker.io/broadgdac/gistic2_analysis:latest"
+            ],
+            "sizeBytes": 2156708881
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/vep@sha256:4914d6b689b8c2f4c4c534d8a13c9649f999118a776a3f42bf63bf032cf1690d",
+              "10.61.0.86:5000/vep:1.0"
+            ],
+            "sizeBytes": 1582606959
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/trim_bwa@sha256:4d59eb65002b239384793143d5981292e1bb612caa6566f17c2d526ea0c322cb",
+              "10.61.0.86:5000/trim_bwa:1.0"
+            ],
+            "sizeBytes": 1351314828
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/snpeff@sha256:c6b47e1352f6eea3fe786113a84972f087770a157d8da21a75af534cc5b8f52c",
+              "10.61.0.86:5000/snpeff:1.0"
+            ],
+            "sizeBytes": 1350097270
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:ba98689c962a22daeb8e65ea9b88fb04e4f65bdefe59a0ee8ef9ceb1146c3bc7",
+              "registry.vega.com:5000/step:1.0"
+            ],
+            "sizeBytes": 998215768
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/cnv@sha256:d04adb5fee712da441f3090befb90cbac02ffcd4a2833f13117bb590a83da118",
+              "10.61.0.86:5000/cnv:1.0"
+            ],
+            "sizeBytes": 964273098
+          },
+          {
+            "names": [
+              "docker.io/broadinstitute/gatk3@sha256:523f2c94c692c396157e50a2600ba5dfc392c8281f760445412d3daf031e846a",
+              "docker.io/broadinstitute/gatk3:3.8-0"
+            ],
+            "sizeBytes": 913060141
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/sv@sha256:ef9b7f21600b5089aadee529a69be38e6d4b50c02fb501b610290b2683d18c16",
+              "10.61.0.86:5000/sv:1.0"
+            ],
+            "sizeBytes": 855870771
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/fastqc@sha256:8e36a41ce2dd6c1bdaed14eec1bb844a8be79d20def1c52be168e28c9cbb4900",
+              "registry.vega.com:5000/fastqc:1.0"
+            ],
+            "sizeBytes": 627366911
+          },
+          {
+            "names": [
+              "happy365/kube-controller-manager-amd64@sha256:2438de754e7cc79f7968e47b893353300e783d64d704eb899bc3a718f4ed714f",
+              "happy365/kube-controller-manager-amd64:1.8.6",
+              "happy365/kube-controller-manager-amd64:v1.8.6"
+            ],
+            "sizeBytes": 607956781
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/bwa@sha256:878892050cde7a6161fab1a1c072688e1f1b40cc7810858a82c295abe080f57b",
+              "registry.vega.com:5000/bwa:1.0"
+            ],
+            "sizeBytes": 566521354
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/fastqc@sha256:c568bce588a9add9e402491c248f61796c5b5644619007b3c4849b819d0c15ca",
+              "10.61.0.86:5000/fastqc:1.0"
+            ],
+            "sizeBytes": 564565824
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/qualimap@sha256:6b3f67182286b9b777b1c51ab7664975a79d61aa3d518801dca81fa7d089ac8a",
+              "10.61.0.86:5000/qualimap:1.0"
+            ],
+            "sizeBytes": 562588526
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/trim@sha256:1245878c52c3d18a369e1c8c0f057db91f5ad4196632a33ca861009e8f114bf2",
+              "registry.vega.com:5000/trim:1.0"
+            ],
+            "sizeBytes": 547234373
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/gatk@sha256:2f62c40374dea0c01d8080fb977eecfcf1595b7693f1f7ea7d0b4ece3bd3b906",
+              "10.61.0.86:5000/gatk:1.0"
+            ],
+            "sizeBytes": 546911057
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/depth@sha256:b2a180e7a4ef7ccfb439b3c8a1e0b8bec431f96d8f1d6938ea40ed812e5406a1",
+              "10.61.0.86:5000/depth:1.0"
+            ],
+            "sizeBytes": 529749336
+          },
+          {
+            "names": [
+              "quay.io/attcomdev/kube-controller-manager@sha256:019e43b713fc9dc50925fcbd2f532d1c27daf3514f86cc88f3cef822270bf3c7",
+              "quay.io/attcomdev/kube-controller-manager:v1.7.3"
+            ],
+            "sizeBytes": 453288597
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:7ed2ff75137a1eaed3622a14071471d7585c1ab5184f42c00760142018239c86",
+              "registry.vega.com:5000/angelina2:1.0"
+            ],
+            "sizeBytes": 445237175
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:3a0b87dbf8d1e10109bb5eb3ec36b8bbe8eda4bb167911f0400b3b835d880173"
+            ],
+            "sizeBytes": 445237134
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:22078c6ea7deff7c8523969c53812c0307106de11b383fb33804a8a747837d6c"
+            ],
+            "sizeBytes": 442652555
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:b3c9b204abde3f1b1f539080b15b98c2ae947a4301c6d65789e8e5ee8b5ac791"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:2a13435c1f9c42f87c0cb71c69b8f1548e79421431266301d2cd5de7b2835b6f"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:30d60d0aea2ffacbe2a1e191c1dfe49eda2672e755e3a8ebeee607df95f6cbb6"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "<none>@<none>",
+              "<none>:<none>"
+            ],
+            "sizeBytes": 439160079
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:24dcb850363c4d42335870c99ee4cd1213a3ef5809e5c1f629e06a7b8d2698db",
+              "angelina2:1.0"
+            ],
+            "sizeBytes": 439160079
+          },
+          {
+            "names": [
+              "angelina-test:1.0"
+            ],
+            "sizeBytes": 407184078
+          },
+          {
+            "names": [
+              "test-angelina:1.0"
+            ],
+            "sizeBytes": 406969699
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/annovar@sha256:10602c055d51d3127d1a7dc18e0c81b218f247cb79ca6c361f1d298d8b45b7ca",
+              "10.61.0.86:5000/annovar:1.0"
+            ],
+            "sizeBytes": 403299932
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/pipe@sha256:bae7a58fd258b52621acf2cc3deb2e686a1a54e8fe838a7c1197c13c8b4b6ded",
+              "registry.vega.com:5000/pipe:1.0"
+            ],
+            "sizeBytes": 395996748
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/controller@sha256:5acc8e20d48f0726b5db5f74ad7b2dbef66e9385954265a92a8fb3e2a3cc2395",
+              "registry.vega.com:5000/controller:1.0"
+            ],
+            "sizeBytes": 395996346
+          },
+          {
+            "names": [
+              "docker.io/mysql@sha256:51644a4583feb7e4a5536b5d5483ec6de37d70e9fbdd20956460abe65b35d3e3",
+              "docker.io/mysql:5.7"
+            ],
+            "sizeBytes": 371405265
+          },
+          {
+            "names": [
+              "docker.io/kubeguide/tomcat-app@sha256:7a9193c2e5c6c74b4ad49a8abbf75373d4ab76c8f8db87672dc526b96ac69ac4",
+              "docker.io/kubeguide/tomcat-app:v1"
+            ],
+            "sizeBytes": 358184705
+          },
+          {
+            "names": [
+              "<none>@<none>",
+              "<none>:<none>"
+            ],
+            "sizeBytes": 339195047
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/pre_proc@sha256:f7ef27b7e67b0423d0b42689cd2410728a32f5dd75004cd85e49f22c198d5868",
+              "10.61.0.86:5000/pre_proc:1.0"
+            ],
+            "sizeBytes": 331870855
+          },
+          {
+            "names": [
+              "quay.io/calico/node@sha256:99bce1d4b4d02e0f3a0ab1c9383654f07ef0fe2dab950c59f6cad4fbbc63291c",
+              "quay.io/calico/node:v2.6.2"
+            ],
+            "sizeBytes": 281619208
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64@sha256:7e0356253d780007a39820b24676676dd40902cc1ee02ba28d77697149b090a8",
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64:v1.0.1"
+            ],
+            "sizeBytes": 250469308
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/centos@sha256:d68176e5c27ec27c19ca2ff010af594934b11248ca7f85a7c7eae1efbac9957c",
+              "10.61.0.86:5000/centos:7.2.1511",
+              "centos:7.2.1511"
+            ],
+            "sizeBytes": 194621904
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-apiserver-amd64@sha256:f0658f0c3344abaae3217d6e08612ea8816a0cdeea1fdd48776dd55d07f17d30",
+              "gcr.io/google_containers/kube-apiserver-amd64:v1.8.6"
+            ],
+            "sizeBytes": 194384437
+          },
+          {
+            "names": [
+              "docker.io/centos@sha256:ff80c21ce1583b9fd74aadd4dc918bed666234ebded65ce642e3ed4ca4ba175d",
+              "docker.io/centos:7.3.1611"
+            ],
+            "sizeBytes": 191839169
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-grafana-amd64@sha256:4a472eb4df03f4f557d80e7c6b903d9c8fe31493108b99fbd6da6540b5448d70",
+              "gcr.io/google_containers/heapster-grafana-amd64:v4.4.3"
+            ],
+            "sizeBytes": 151537678
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-controller-manager-amd64@sha256:f06b0a323511a8d5a0c47c4229c3580390a5232761eade11bbe9356739356514",
+              "gcr.io/google_containers/kube-controller-manager-amd64:v1.8.6"
+            ],
+            "sizeBytes": 129323157
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-amd64@sha256:327cfef378e88ffbc327f98dd24adacf6c9363c042db78e922d050f2bdcf6f78",
+              "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.7.1"
+            ],
+            "sizeBytes": 128398274
+          },
+          {
+            "names": [
+              "docker.io/ubuntu@sha256:506e2d5852de1d7c90d538c5332bd3cc33b9cbd26f6ca653875899c505c82687"
+            ],
+            "sizeBytes": 122019781
+          },
+          {
+            "names": [
+              "<none>@<none>",
+              "<none>:<none>"
+            ],
+            "sizeBytes": 110503258
+          },
+          {
+            "names": [
+              "test1:1.0"
+            ],
+            "sizeBytes": 110503255
+          },
+          {
+            "names": [
+              "docker.io/ubuntu@sha256:fbaf303d18563e57a3c1a0005356ad102509b60884f3aa89ef9a90c0ea5d1212",
+              "docker.io/ubuntu:16.04"
+            ],
+            "sizeBytes": 110503204
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:285b49d42c703fdf257d1e2422765c4ba9d3e37768d6ea83d7fe2043dad6e63d",
+              "docker.io/nginx@sha256:cf8d5726fc897486a4f628d3b93483e3f391a76ea4897de0500ef1f9abcd69a1",
+              "docker.io/nginx:latest"
+            ],
+            "sizeBytes": 108472156
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:097e60cd1feb1537e07b949e21c803d0cb628b8dc62dba110c5bff48e87598cf",
+              "docker.io/nginx:1.12"
+            ],
+            "sizeBytes": 108340601
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-proxy-amd64@sha256:4dc8aefa2bfe010b5cd820de67e03493a37489696f71339da604de47815ec00a",
+              "gcr.io/google_containers/kube-proxy-amd64:v1.8.6"
+            ],
+            "sizeBytes": 93210129
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/redis@sha256:730b765df9fe96af414da64a2b67f3a5f70b8fd13a31e5096fee4807ed802e20",
+              "docker.io/redis@sha256:730b765df9fe96af414da64a2b67f3a5f70b8fd13a31e5096fee4807ed802e20",
+              "10.61.0.86:5000/redis:3.0",
+              "192.168.1.202:5000/redis:3.0",
+              "docker.io/redis:3.0"
+            ],
+            "sizeBytes": 91531607
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "virt3",
+        "selfLink": "/api/v1/nodes/virt3",
+        "uid": "90b0cee0-f5b2-11e7-a55c-90b11c06b5e3",
+        "resourceVersion": "14413938",
+        "creationTimestamp": "2018-01-10T03:01:33Z",
+        "labels": {
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/hostname": "virt3",
+          "node-role.kubernetes.io/node": "true",
+          "beta.kubernetes.io/arch": "amd64"
+        },
+        "annotations": {
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.244.2.0/24",
+        "externalID": "virt3"
+      },
+      "status": {
+        "capacity": {
+          "cpu": "16",
+          "memory": "65794388Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "16",
+          "memory": "65691988Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "OutOfDisk",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:00:54Z",
+            "lastTransitionTime": "2018-01-10T03:01:33Z",
+            "reason": "KubeletHasSufficientDisk",
+            "message": "kubelet has sufficient disk space available"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:00:54Z",
+            "lastTransitionTime": "2018-05-05T14:27:47Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:00:54Z",
+            "lastTransitionTime": "2018-05-05T14:27:47Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2018-05-08T13:00:54Z",
+            "lastTransitionTime": "2018-05-05T14:27:57Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "10.61.0.87"
+          },
+          {
+            "type": "Hostname",
+            "address": "virt3"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "b3934049b991442da28caf9280373785",
+          "systemUUID": "44454C4C-5300-104C-804C-B1C04F463358",
+          "bootID": "479fbd85-8910-4cf9-8dc7-e48f4051f663",
+          "kernelVersion": "3.10.0-327.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://1.12.6",
+          "kubeletVersion": "v1.8.6",
+          "kubeProxyVersion": "v1.8.6",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:f4e266048410b22477d0b03c129d72356778b40806d2cc64917c8bd279a5e6ee",
+              "registry.vega.com:5000/step:1.0"
+            ],
+            "sizeBytes": 998215768
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/fastqc@sha256:8e36a41ce2dd6c1bdaed14eec1bb844a8be79d20def1c52be168e28c9cbb4900",
+              "registry.vega.com:5000/fastqc:1.0"
+            ],
+            "sizeBytes": 627366911
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/bwa@sha256:878892050cde7a6161fab1a1c072688e1f1b40cc7810858a82c295abe080f57b",
+              "registry.vega.com:5000/bwa:1.0"
+            ],
+            "sizeBytes": 566521354
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/trim@sha256:fcd5aaf00dabce56e14864373cd7d84f1ba47b5a9f46ae0009507d8fd20e1c70",
+              "registry.vega.com:5000/trim:1.0"
+            ],
+            "sizeBytes": 547234403
+          },
+          {
+            "names": [
+              "docker.io/happy365/angelina-controller@sha256:da440028713d8eb4644321d52422d4de2e35d0ec69d56360af48b92a05e5213b",
+              "docker.io/happy365/angelina-controller:2.0"
+            ],
+            "sizeBytes": 490048458
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:7ed2ff75137a1eaed3622a14071471d7585c1ab5184f42c00760142018239c86",
+              "registry.vega.com:5000/angelina2:1.0"
+            ],
+            "sizeBytes": 445237175
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:22078c6ea7deff7c8523969c53812c0307106de11b383fb33804a8a747837d6c"
+            ],
+            "sizeBytes": 442652555
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:b3c9b204abde3f1b1f539080b15b98c2ae947a4301c6d65789e8e5ee8b5ac791"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:2a13435c1f9c42f87c0cb71c69b8f1548e79421431266301d2cd5de7b2835b6f"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:24dcb850363c4d42335870c99ee4cd1213a3ef5809e5c1f629e06a7b8d2698db"
+            ],
+            "sizeBytes": 439160079
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/pipe@sha256:bae7a58fd258b52621acf2cc3deb2e686a1a54e8fe838a7c1197c13c8b4b6ded",
+              "registry.vega.com:5000/pipe:1.0"
+            ],
+            "sizeBytes": 395996748
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/controller@sha256:e8a5908944ba81c7b153a465c5e438d6324a2d697c82725fd84cf79d0131dbd0",
+              "registry.vega.com:5000/controller:1.0"
+            ],
+            "sizeBytes": 395996360
+          },
+          {
+            "names": [
+              "quay.io/calico/node@sha256:99bce1d4b4d02e0f3a0ab1c9383654f07ef0fe2dab950c59f6cad4fbbc63291c",
+              "quay.io/calico/node:v2.6.2"
+            ],
+            "sizeBytes": 281619208
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64@sha256:7e0356253d780007a39820b24676676dd40902cc1ee02ba28d77697149b090a8",
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64:v1.0.1"
+            ],
+            "sizeBytes": 250469308
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-apiserver-amd64@sha256:f0658f0c3344abaae3217d6e08612ea8816a0cdeea1fdd48776dd55d07f17d30",
+              "gcr.io/google_containers/kube-apiserver-amd64:v1.8.6"
+            ],
+            "sizeBytes": 194384437
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:91cfeccfa98ae02f58c991ddf0b5d54023d6c5f627d485e045826b4c203732ef"
+            ],
+            "sizeBytes": 191839278
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-grafana-amd64@sha256:4a472eb4df03f4f557d80e7c6b903d9c8fe31493108b99fbd6da6540b5448d70",
+              "gcr.io/google_containers/heapster-grafana-amd64:v4.4.3"
+            ],
+            "sizeBytes": 151537678
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-controller-manager-amd64@sha256:f06b0a323511a8d5a0c47c4229c3580390a5232761eade11bbe9356739356514",
+              "gcr.io/google_containers/kube-controller-manager-amd64:v1.8.6"
+            ],
+            "sizeBytes": 129323157
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-amd64@sha256:327cfef378e88ffbc327f98dd24adacf6c9363c042db78e922d050f2bdcf6f78",
+              "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.7.1"
+            ],
+            "sizeBytes": 128398274
+          },
+          {
+            "names": [
+              "k8s.gcr.io/kubernetes-dashboard-amd64@sha256:3861695e962972965a4c611bcabc2032f885d8cbdb0bccc9bf513ef16335fe33",
+              "k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.1"
+            ],
+            "sizeBytes": 120712806
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:285b49d42c703fdf257d1e2422765c4ba9d3e37768d6ea83d7fe2043dad6e63d",
+              "docker.io/nginx:latest"
+            ],
+            "sizeBytes": 108472156
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:416134fd8b36457ee5dfdc08eb7271a30aa0ce0d8a1b55a6bcb9852f8f362630",
+              "docker.io/nginx:1.12"
+            ],
+            "sizeBytes": 108340601
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-proxy-amd64@sha256:4dc8aefa2bfe010b5cd820de67e03493a37489696f71339da604de47815ec00a",
+              "gcr.io/google_containers/kube-proxy-amd64:v1.8.6"
+            ],
+            "sizeBytes": 93210129
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:e3456c851a152494c3e4ff5fcc26f240206abac0c9d794affb40e0714846c451",
+              "docker.io/nginx:1.7.9"
+            ],
+            "sizeBytes": 91641000
+          },
+          {
+            "names": [
+              "docker.io/redis@sha256:4b9973b2c10b1d2275e1ad5b683ba70824e735f393bffe498526ce41bfa131fa",
+              "docker.io/redis:3.0"
+            ],
+            "sizeBytes": 91531607
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-scheduler-amd64@sha256:4dcf7b2872bd9086ce236535bf03d2077252aebedbcad5de324042edd428f478",
+              "gcr.io/google_containers/kube-scheduler-amd64:v1.8.6"
+            ],
+            "sizeBytes": 54989385
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-kube-dns-amd64@sha256:f5bddc71efe905f4e4b96f3ca346414be6d733610c1525b98fff808f93966680",
+              "gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.7"
+            ],
+            "sizeBytes": 50270536
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-sidecar-amd64@sha256:f80f5f9328107dc516d67f7b70054354b9367d31d4946a3bffd3383d83d7efe8",
+              "gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.7"
+            ],
+            "sizeBytes": 42028742
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64@sha256:6cfb9f9c2756979013dbd3074e852c2d8ac99652570c5d17d152e0c0eb3321d6",
+              "gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.7"
+            ],
+            "sizeBytes": 40947480
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-influxdb-amd64@sha256:f433e331c1865ad87bc5387589965528b78cd6b1b2f61697e589584d690c1edd",
+              "gcr.io/google_containers/heapster-influxdb-amd64:v1.3.3"
+            ],
+            "sizeBytes": 12546306
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/pause@sha256:0d093c962a6c2dd8bb8727b661e2b5f13e9df884af9945b4cc7088d9350cd3ee",
+              "gcr.io/google_containers/pause:3.0"
+            ],
+            "sizeBytes": 746888
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "virt4",
+        "selfLink": "/api/v1/nodes/virt4",
+        "uid": "90b5b08c-f5b2-11e7-a55c-90b11c06b5e3",
+        "resourceVersion": "14413951",
+        "creationTimestamp": "2018-01-10T03:01:33Z",
+        "labels": {
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/hostname": "virt4",
+          "node-role.kubernetes.io/node": "true"
+        },
+        "annotations": {
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.244.3.0/24",
+        "externalID": "virt4"
+      },
+      "status": {
+        "capacity": {
+          "cpu": "16",
+          "memory": "65794388Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "16",
+          "memory": "65691988Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "OutOfDisk",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:01:03Z",
+            "lastTransitionTime": "2018-01-10T03:01:33Z",
+            "reason": "KubeletHasSufficientDisk",
+            "message": "kubelet has sufficient disk space available"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:01:03Z",
+            "lastTransitionTime": "2018-02-25T01:27:18Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:01:03Z",
+            "lastTransitionTime": "2018-02-25T01:27:18Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2018-05-08T13:01:03Z",
+            "lastTransitionTime": "2018-05-07T05:46:33Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "10.61.0.88"
+          },
+          {
+            "type": "Hostname",
+            "address": "virt4"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "da48acd6d278435aa8f1df91abe66cd9",
+          "systemUUID": "44454C4C-5200-104C-804C-B1C04F463358",
+          "bootID": "c090bba3-600b-43d0-a555-e6108a4a0e97",
+          "kernelVersion": "3.10.0-327.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://1.12.6",
+          "kubeletVersion": "v1.8.6",
+          "kubeProxyVersion": "v1.8.6",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "10.61.0.86:5000/snpeff@sha256:1730e0d797888b38cb549aff32d33d8af533c60a52fb059ae86137b5f3b91703",
+              "10.61.0.86:5000/snpeff:1.0"
+            ],
+            "sizeBytes": 1511880586
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/vep@sha256:913ab891c8dba5797fc00a50fead5b304f3148f5d2ecaedbbdbb7fc0411092ca",
+              "10.61.0.86:5000/vep:1.0"
+            ],
+            "sizeBytes": 1470804822
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/trim_bwa@sha256:15668cbc1579e049b99507f8746456ece31fb23703f5e9d715fead85fa029c34",
+              "10.61.0.86:5000/trim_bwa:1.0"
+            ],
+            "sizeBytes": 1447267591
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/cnv@sha256:10716edd164569f2a4eb3742af2e468e9731e01cad97fa3a4594fe25380cf6c9",
+              "10.61.0.86:5000/cnv:1.0"
+            ],
+            "sizeBytes": 1125315992
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/sv@sha256:a6d05e932c78a5d3eec143c74378e5a36c87c936eda11fde92d3e27c873bf153",
+              "10.61.0.86:5000/sv:1.0"
+            ],
+            "sizeBytes": 1016106532
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:ba98689c962a22daeb8e65ea9b88fb04e4f65bdefe59a0ee8ef9ceb1146c3bc7",
+              "registry.vega.com:5000/step:1.0"
+            ],
+            "sizeBytes": 998215768
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:5e696bdecbc91691cd4fe2c592da056666c30c118ed274b92141d086d88c806c"
+            ],
+            "sizeBytes": 998215746
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:e70eaa0d574da8a46870bb4c3fc48cd2ce14a890bf5fb1f4b552e10783289ddf"
+            ],
+            "sizeBytes": 998215656
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:7d2cd737904d3e02a74990bfe63a59348029e0c6f36fc2126f5de5860ce20d5b"
+            ],
+            "sizeBytes": 890265198
+          },
+          {
+            "names": [
+              "<none>@<none>",
+              "<none>:<none>"
+            ],
+            "sizeBytes": 890264581
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:7b800e367106e011071a9fd6258dd19c8a7cf94e8f5b1b2dd52d13e9e9ba42fc"
+            ],
+            "sizeBytes": 890264581
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:687bd3fc0d1dfe3c70ae59caadd6d81e84800067522dde27476cff0f4575c712"
+            ],
+            "sizeBytes": 890264376
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:7b1322fe6b1c683cb173ac40c4bf1d505391357eaefd778e0e3a144586602c81"
+            ],
+            "sizeBytes": 815024463
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/qualimap@sha256:0d34c1513bfdbb5c141323af2a6844900453ad6a2f2fa93042b9c2598e8d5db2",
+              "10.61.0.86:5000/qualimap:1.0"
+            ],
+            "sizeBytes": 724371842
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/gatk@sha256:84c40d51a9b8b3b1735c26d3c9728b44138633aa5b761294930fdb8218089047",
+              "10.61.0.86:5000/gatk:1.0"
+            ],
+            "sizeBytes": 708694197
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/depth@sha256:056086eea454d6c7e1b53fa7b23b04f2451d79f799fc4e46f1ce5f8d4c4a2ba7",
+              "10.61.0.86:5000/depth:1.0"
+            ],
+            "sizeBytes": 691532652
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/fastqc@sha256:f42ebc66455e91617a80520367d7f90bb1627f3e18a20fab2a0f633a230c6421",
+              "10.61.0.86:5000/fastqc:1.0"
+            ],
+            "sizeBytes": 674819757
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/fastqc@sha256:8e36a41ce2dd6c1bdaed14eec1bb844a8be79d20def1c52be168e28c9cbb4900",
+              "registry.vega.com:5000/fastqc:1.0"
+            ],
+            "sizeBytes": 627366911
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/annovar@sha256:dcdcb25836579396edda1ab0e0990513bf36d769745c152d957c62f517ddd50a",
+              "10.61.0.86:5000/annovar:1.0"
+            ],
+            "sizeBytes": 566641679
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/bwa@sha256:878892050cde7a6161fab1a1c072688e1f1b40cc7810858a82c295abe080f57b",
+              "registry.vega.com:5000/bwa:1.0"
+            ],
+            "sizeBytes": 566521354
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/trim@sha256:fcd5aaf00dabce56e14864373cd7d84f1ba47b5a9f46ae0009507d8fd20e1c70",
+              "registry.vega.com:5000/trim:1.0"
+            ],
+            "sizeBytes": 547234403
+          },
+          {
+            "names": [
+              "docker.io/happy365/angelina-controller@sha256:da440028713d8eb4644321d52422d4de2e35d0ec69d56360af48b92a05e5213b",
+              "docker.io/happy365/angelina-controller:2.0"
+            ],
+            "sizeBytes": 490048458
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:7ed2ff75137a1eaed3622a14071471d7585c1ab5184f42c00760142018239c86",
+              "registry.vega.com:5000/angelina2:1.0"
+            ],
+            "sizeBytes": 445237175
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:b3c9b204abde3f1b1f539080b15b98c2ae947a4301c6d65789e8e5ee8b5ac791"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:2a13435c1f9c42f87c0cb71c69b8f1548e79421431266301d2cd5de7b2835b6f"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:24dcb850363c4d42335870c99ee4cd1213a3ef5809e5c1f629e06a7b8d2698db"
+            ],
+            "sizeBytes": 439160079
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/pre_proc@sha256:4a6c25bbad78eebdf9c77634b24870ab149b2e4ee2620bfdf163f4e78b50fb79",
+              "10.61.0.86:5000/pre_proc:1.0"
+            ],
+            "sizeBytes": 410748319
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/pipe@sha256:bae7a58fd258b52621acf2cc3deb2e686a1a54e8fe838a7c1197c13c8b4b6ded",
+              "registry.vega.com:5000/pipe:1.0"
+            ],
+            "sizeBytes": 395996748
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/controller@sha256:e8a5908944ba81c7b153a465c5e438d6324a2d697c82725fd84cf79d0131dbd0",
+              "registry.vega.com:5000/controller:1.0"
+            ],
+            "sizeBytes": 395996360
+          },
+          {
+            "names": [
+              "docker.io/kubeguide/tomcat-app@sha256:7a9193c2e5c6c74b4ad49a8abbf75373d4ab76c8f8db87672dc526b96ac69ac4",
+              "docker.io/kubeguide/tomcat-app:v1"
+            ],
+            "sizeBytes": 358184705
+          },
+          {
+            "names": [
+              "docker.io/happy365/centos7-ssh@sha256:bfcde186892c047f08f7e88e3c11be2d557cdfae64faac58a114cc825276ecc7",
+              "docker.io/happy365/centos7-ssh:latest"
+            ],
+            "sizeBytes": 319585345
+          },
+          {
+            "names": [
+              "quay.io/calico/node@sha256:99bce1d4b4d02e0f3a0ab1c9383654f07ef0fe2dab950c59f6cad4fbbc63291c",
+              "quay.io/calico/node:v2.6.2"
+            ],
+            "sizeBytes": 281619208
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64@sha256:7e0356253d780007a39820b24676676dd40902cc1ee02ba28d77697149b090a8",
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64:v1.0.1"
+            ],
+            "sizeBytes": 250469308
+          },
+          {
+            "names": [
+              "do:1.0"
+            ],
+            "sizeBytes": 217310753
+          },
+          {
+            "names": [
+              "registry.access.redhat.com/rhel7/pod-infrastructure@sha256:a269caa130cc66f83de0f5ff96305d0ed80cbab279279bca61db8cb50b38ed13",
+              "registry.access.redhat.com/rhel7/pod-infrastructure:latest"
+            ],
+            "sizeBytes": 205810221
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-apiserver-amd64@sha256:f0658f0c3344abaae3217d6e08612ea8816a0cdeea1fdd48776dd55d07f17d30",
+              "gcr.io/google_containers/kube-apiserver-amd64:v1.8.6"
+            ],
+            "sizeBytes": 194384437
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:91cfeccfa98ae02f58c991ddf0b5d54023d6c5f627d485e045826b4c203732ef"
+            ],
+            "sizeBytes": 191839278
+          },
+          {
+            "names": [
+              "docker.io/centos@sha256:ff80c21ce1583b9fd74aadd4dc918bed666234ebded65ce642e3ed4ca4ba175d",
+              "docker.io/centos:7.3.1611"
+            ],
+            "sizeBytes": 191839169
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-grafana-amd64@sha256:4a472eb4df03f4f557d80e7c6b903d9c8fe31493108b99fbd6da6540b5448d70",
+              "gcr.io/google_containers/heapster-grafana-amd64:v4.4.3"
+            ],
+            "sizeBytes": 151537678
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-controller-manager-amd64@sha256:f06b0a323511a8d5a0c47c4229c3580390a5232761eade11bbe9356739356514",
+              "gcr.io/google_containers/kube-controller-manager-amd64:v1.8.6"
+            ],
+            "sizeBytes": 129323157
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-amd64@sha256:327cfef378e88ffbc327f98dd24adacf6c9363c042db78e922d050f2bdcf6f78",
+              "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.7.1"
+            ],
+            "sizeBytes": 128398274
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:416134fd8b36457ee5dfdc08eb7271a30aa0ce0d8a1b55a6bcb9852f8f362630",
+              "docker.io/nginx:1.12"
+            ],
+            "sizeBytes": 108340601
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/nginx@sha256:423210a5903e9683d2bc8436ed06343ad5955c1aec71a04e1d45bd70b0d68460",
+              "10.61.0.86:5000/nginx:1.0"
+            ],
+            "sizeBytes": 107489936
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-proxy-amd64@sha256:4dc8aefa2bfe010b5cd820de67e03493a37489696f71339da604de47815ec00a",
+              "gcr.io/google_containers/kube-proxy-amd64:v1.8.6"
+            ],
+            "sizeBytes": 93210129
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:e3456c851a152494c3e4ff5fcc26f240206abac0c9d794affb40e0714846c451",
+              "docker.io/nginx:1.7.9"
+            ],
+            "sizeBytes": 91641000
+          },
+          {
+            "names": [
+              "10.61.0.86:5000/redis@sha256:730b765df9fe96af414da64a2b67f3a5f70b8fd13a31e5096fee4807ed802e20",
+              "docker.io/redis@sha256:730b765df9fe96af414da64a2b67f3a5f70b8fd13a31e5096fee4807ed802e20",
+              "10.61.0.86:5000/redis:3.0",
+              "docker.io/redis:3.0"
+            ],
+            "sizeBytes": 91531607
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-amd64@sha256:8db84fe30aca86f5dab18fcc73ed7d8b51d3504aa877f949da96299a9df3494f",
+              "gcr.io/google_containers/heapster-amd64:v1.5.0-beta.0"
+            ],
+            "sizeBytes": 73798404
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-scheduler-amd64@sha256:4dcf7b2872bd9086ce236535bf03d2077252aebedbcad5de324042edd428f478",
+              "gcr.io/google_containers/kube-scheduler-amd64:v1.8.6"
+            ],
+            "sizeBytes": 54989385
+          },
+          {
+            "names": [
+              "quay.io/calico/kube-controllers@sha256:35f871cddcdd0abf2bde0ab5ed57dea05da2c53022d762656b8af3cf3f1728b0",
+              "quay.io/calico/kube-controllers:v1.0.0"
+            ],
+            "sizeBytes": 51448771
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-kube-dns-amd64@sha256:f5bddc71efe905f4e4b96f3ca346414be6d733610c1525b98fff808f93966680",
+              "gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.7"
+            ],
+            "sizeBytes": 50270536
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "virt5",
+        "selfLink": "/api/v1/nodes/virt5",
+        "uid": "90ada673-f5b2-11e7-a55c-90b11c06b5e3",
+        "resourceVersion": "14413943",
+        "creationTimestamp": "2018-01-10T03:01:33Z",
+        "labels": {
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/hostname": "virt5",
+          "node-role.kubernetes.io/node": "true"
+        },
+        "annotations": {
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.244.1.0/24",
+        "externalID": "virt5"
+      },
+      "status": {
+        "capacity": {
+          "cpu": "16",
+          "memory": "65794388Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "16",
+          "memory": "65691988Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "OutOfDisk",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:00:59Z",
+            "lastTransitionTime": "2018-01-10T03:01:33Z",
+            "reason": "KubeletHasSufficientDisk",
+            "message": "kubelet has sufficient disk space available"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:00:59Z",
+            "lastTransitionTime": "2018-02-25T02:13:33Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2018-05-08T13:00:59Z",
+            "lastTransitionTime": "2018-02-25T02:13:33Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2018-05-08T13:00:59Z",
+            "lastTransitionTime": "2018-05-05T13:47:36Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "10.61.0.89"
+          },
+          {
+            "type": "Hostname",
+            "address": "virt5"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "ccb60ce3b02d4d72a950016def5c24ff",
+          "systemUUID": "44454C4C-5100-104C-804C-CAC04F463358",
+          "bootID": "21253481-a4f0-43f4-adcd-29f46e0fc8af",
+          "kernelVersion": "3.10.0-327.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://1.12.6",
+          "kubeletVersion": "v1.8.6",
+          "kubeProxyVersion": "v1.8.6",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "registry.vega.com:5000/step@sha256:ba98689c962a22daeb8e65ea9b88fb04e4f65bdefe59a0ee8ef9ceb1146c3bc7",
+              "registry.vega.com:5000/step:1.0"
+            ],
+            "sizeBytes": 998215768
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/fastqc@sha256:8e36a41ce2dd6c1bdaed14eec1bb844a8be79d20def1c52be168e28c9cbb4900",
+              "registry.vega.com:5000/fastqc:1.0"
+            ],
+            "sizeBytes": 627366911
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/bwa@sha256:878892050cde7a6161fab1a1c072688e1f1b40cc7810858a82c295abe080f57b",
+              "registry.vega.com:5000/bwa:1.0"
+            ],
+            "sizeBytes": 566521354
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/trim@sha256:fcd5aaf00dabce56e14864373cd7d84f1ba47b5a9f46ae0009507d8fd20e1c70",
+              "registry.vega.com:5000/trim:1.0"
+            ],
+            "sizeBytes": 547234403
+          },
+          {
+            "names": [
+              "docker.io/happy365/angelina-controller@sha256:da440028713d8eb4644321d52422d4de2e35d0ec69d56360af48b92a05e5213b",
+              "docker.io/happy365/angelina-controller:2.0"
+            ],
+            "sizeBytes": 490048458
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:7ed2ff75137a1eaed3622a14071471d7585c1ab5184f42c00760142018239c86",
+              "registry.vega.com:5000/angelina2:1.0"
+            ],
+            "sizeBytes": 445237175
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:3a0b87dbf8d1e10109bb5eb3ec36b8bbe8eda4bb167911f0400b3b835d880173"
+            ],
+            "sizeBytes": 445237134
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:22078c6ea7deff7c8523969c53812c0307106de11b383fb33804a8a747837d6c"
+            ],
+            "sizeBytes": 442652555
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/angelina2@sha256:2a13435c1f9c42f87c0cb71c69b8f1548e79421431266301d2cd5de7b2835b6f"
+            ],
+            "sizeBytes": 439160120
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/pipe@sha256:bae7a58fd258b52621acf2cc3deb2e686a1a54e8fe838a7c1197c13c8b4b6ded",
+              "registry.vega.com:5000/pipe:1.0"
+            ],
+            "sizeBytes": 395996748
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/controller@sha256:e8a5908944ba81c7b153a465c5e438d6324a2d697c82725fd84cf79d0131dbd0",
+              "registry.vega.com:5000/controller:1.0"
+            ],
+            "sizeBytes": 395996360
+          },
+          {
+            "names": [
+              "quay.io/calico/node@sha256:99bce1d4b4d02e0f3a0ab1c9383654f07ef0fe2dab950c59f6cad4fbbc63291c",
+              "quay.io/calico/node:v2.6.2"
+            ],
+            "sizeBytes": 281619208
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64@sha256:7e0356253d780007a39820b24676676dd40902cc1ee02ba28d77697149b090a8",
+              "gcr.io/google_containers/kubernetes-dashboard-init-amd64:v1.0.1"
+            ],
+            "sizeBytes": 250469308
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-apiserver-amd64@sha256:f0658f0c3344abaae3217d6e08612ea8816a0cdeea1fdd48776dd55d07f17d30",
+              "gcr.io/google_containers/kube-apiserver-amd64:v1.8.6"
+            ],
+            "sizeBytes": 194384437
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-grafana-amd64@sha256:4a472eb4df03f4f557d80e7c6b903d9c8fe31493108b99fbd6da6540b5448d70",
+              "gcr.io/google_containers/heapster-grafana-amd64:v4.4.3"
+            ],
+            "sizeBytes": 151537678
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-controller-manager-amd64@sha256:f06b0a323511a8d5a0c47c4229c3580390a5232761eade11bbe9356739356514",
+              "gcr.io/google_containers/kube-controller-manager-amd64:v1.8.6"
+            ],
+            "sizeBytes": 129323157
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kubernetes-dashboard-amd64@sha256:327cfef378e88ffbc327f98dd24adacf6c9363c042db78e922d050f2bdcf6f78",
+              "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.7.1"
+            ],
+            "sizeBytes": 128398274
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:285b49d42c703fdf257d1e2422765c4ba9d3e37768d6ea83d7fe2043dad6e63d",
+              "docker.io/nginx:latest"
+            ],
+            "sizeBytes": 108472156
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:547ea435d7d719b1a18b33e1a859b3ba0c81348d2f86d1d99ca1ba9c1422663e",
+              "docker.io/nginx:1.12"
+            ],
+            "sizeBytes": 108334080
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-proxy-amd64@sha256:4dc8aefa2bfe010b5cd820de67e03493a37489696f71339da604de47815ec00a",
+              "gcr.io/google_containers/kube-proxy-amd64:v1.8.6"
+            ],
+            "sizeBytes": 93210129
+          },
+          {
+            "names": [
+              "docker.io/nginx@sha256:e3456c851a152494c3e4ff5fcc26f240206abac0c9d794affb40e0714846c451",
+              "docker.io/nginx:1.7.9"
+            ],
+            "sizeBytes": 91641000
+          },
+          {
+            "names": [
+              "docker.io/redis@sha256:4b9973b2c10b1d2275e1ad5b683ba70824e735f393bffe498526ce41bfa131fa",
+              "docker.io/redis:3.0"
+            ],
+            "sizeBytes": 91531607
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-amd64@sha256:8db84fe30aca86f5dab18fcc73ed7d8b51d3504aa877f949da96299a9df3494f",
+              "gcr.io/google_containers/heapster-amd64:v1.5.0-beta.0"
+            ],
+            "sizeBytes": 73798404
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/kube-scheduler-amd64@sha256:4dcf7b2872bd9086ce236535bf03d2077252aebedbcad5de324042edd428f478",
+              "gcr.io/google_containers/kube-scheduler-amd64:v1.8.6"
+            ],
+            "sizeBytes": 54989385
+          },
+          {
+            "names": [
+              "quay.io/calico/kube-controllers@sha256:35f871cddcdd0abf2bde0ab5ed57dea05da2c53022d762656b8af3cf3f1728b0",
+              "quay.io/calico/kube-controllers:v1.0.0"
+            ],
+            "sizeBytes": 51448771
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-kube-dns-amd64@sha256:f5bddc71efe905f4e4b96f3ca346414be6d733610c1525b98fff808f93966680",
+              "gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.7"
+            ],
+            "sizeBytes": 50270536
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-sidecar-amd64@sha256:f80f5f9328107dc516d67f7b70054354b9367d31d4946a3bffd3383d83d7efe8",
+              "gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.7"
+            ],
+            "sizeBytes": 42028742
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64@sha256:6cfb9f9c2756979013dbd3074e852c2d8ac99652570c5d17d152e0c0eb3321d6",
+              "gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.7"
+            ],
+            "sizeBytes": 40947480
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/addon-resizer@sha256:dcec9a5c2e20b8df19f3e9eeb87d9054a9e94e71479b935d5cfdbede9ce15895",
+              "gcr.io/google_containers/addon-resizer:1.7"
+            ],
+            "sizeBytes": 38983736
+          },
+          {
+            "names": [
+              "registry.vega.com:5000/registry@sha256:feb40d14cd33e646b9985e2d6754ed66616fedb840226c4d917ef53d616dcd6c",
+              "registry.vega.com:5000/registry:2.6"
+            ],
+            "sizeBytes": 33258091
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/heapster-influxdb-amd64@sha256:f433e331c1865ad87bc5387589965528b78cd6b1b2f61697e589584d690c1edd",
+              "gcr.io/google_containers/heapster-influxdb-amd64:v1.3.3"
+            ],
+            "sizeBytes": 12546306
+          },
+          {
+            "names": [
+              "gcr.io/google_containers/pause@sha256:0d093c962a6c2dd8bb8727b661e2b5f13e9df884af9945b4cc7088d9350cd3ee",
+              "gcr.io/google_containers/pause:3.0"
+            ],
+            "sizeBytes": 746888
+          }
+        ]
+      }
+    }
+  ]
+}

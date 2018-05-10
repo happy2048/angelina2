@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
       - name: angelina-controller
-        image: happy365/angelina-controller:2.0
+        image: registry.vega.com:5000/angelina3:1.0
+        imagePullPolicy: Always
         env:
         - name: ANGELINA_REDIS_ADDR
           value: angelina-redis
@@ -25,6 +26,22 @@ spec:
           value: "6380"
         - name: ANGELINA_SERVER
           value: ":6300"
+        - name: ANGELINA_CONTROLLER_ENTRY
+          value: "angelina-controller:6300"
+        - name: NAMESPACE
+          value: "bio-system"
+        - name: START_CMD
+          value: "rundoc.sh"
+        - name: GLUSTERFS_ENDPOINT
+          value: "glusterfs-cluster"
+        - name: GLUSTERFS_DATA_VOLUME
+          value: "data-volume"
+        - name: GLUSTERFS_REFER_VOLUME
+          value: "refer-volume"
+        - name: ANGELINA_QUOTA
+          value: "compute-resources"
+        - name: KUBER_APISERVER
+          value: "https://10.61.0.160:6443"
         ports:
         - containerPort: 6300
           protocol: UDP

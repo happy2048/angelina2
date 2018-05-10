@@ -23,6 +23,7 @@ angelina主要就是解决上面的任务执行顺序。
 	4.通过glusterfs实现任务之间文件共享。
 	5.可以把任务进一步拆成子任务。
 	6.对运行的任务进行监控，出现错误可重新调度任务。
+	7.当计算资源紧缺时，作业将排队等候，不会造成整个集群崩溃。
 依赖：
 	
 	1.kubernetes (>= 1.8)
@@ -90,9 +91,6 @@ angelina controller架构图如下所示：
                       设置angelina持久化数据库redis，格式为ip:port,如果不指定该选项，需要设置系统环境变量REDISADDR,否则程序不会运行。
 	
 	Other Options:
-	  -I, --init=     Angelina configure file,the content of the file will be stored in the redis,and
-	                  use -g option will generate an angelina template configure file.
-                      初始化angelina,后面跟上初始化文件，初始化文件模板由-g init产生。
 	  -s, --store=    Give a pipeline template file,and store it to redis.
                       如果有新的任务流模板，使用此选项把该模板保存到redis当中。
 	  -l, --list      List the pipelines which have already existed.
@@ -109,12 +107,11 @@ angelina controller架构图如下所示：
                       持续获取单个作业或者所有作业的状态，必须与-j或-J一起使用。
 	  -q, --query=    give the pipeline id or pipeline name to get it's content.
                       查询指定模板的详细内容。
-	  -g, --generate= Three value("conf","pipe","init") can be given,"pipe" is to generate a pipeline
+	  -g, --generate= Three value("conf","pipe") can be given,"pipe" is to generate a pipeline
 	                  template file and you can edit it and use -s to store the pipeline;"conf" is to
 	                  generate running configure file and you can edit it and use -c option to run the
-	                  sample;"init" is to generate angelina template configure file,then you can edit
-	                  it and use -I to init the angelina system.
-                      产生初始化文件模板，配置文件模板，任务流模板，其中初始化文件模板供-I选项使用，配置文件模板供-c选项使用，任务流模板供-s使用。
+	                  sample.
+                      产生配置文件模板，任务流模板，其中配置文件模板供-c选项使用，任务流模板供-s使用。
 	
 	Help Options:
 	  -h, --help      Show this help message
@@ -162,7 +159,7 @@ angelina controller架构图如下所示：
 	（1） pipeline-name： 模板名称
 	（2） pipeline-description： 模板描述
 	（3） pipeline-content： 模板内容
-	（4） pipeline-content: 主要分为四个域： refer,input,params,以及各个step,每个域都必须表示出来，如果没有数据就留空。
+	（4） pipeline-content: 主要分为五个域： refer,input,params,计算资源限制域，以及各个step,每个域都必须表示出来，如果没有数据就留空（计算资源域除外）。
 refer域的说明：
 
 	（1）主要在这设置一些任务所需的参考文件，比如参考基因组文件等，下面是个例子：
@@ -215,7 +212,37 @@ params域的说明：
 		比如上面的例子的当中，可以在命令行通过“-e  FASTQC=5”动态修改这个值。
 	（2）在step当中引用params里面的值，比如在step当中需要使用“/root/Trimmomatic-0.36” 这个值，可以在step中使用“params@TRIMDIR”替换。
 
+计算资源域说明：
+	
+	（1）计算资源域分为两种： requests和limits
+	（2）requests表示容器运行需要的最低资源，如果集群剩余资源比最低资源还小，容器将不会调度，
+	（3）limits表示容器运行最大可用的资源，如果容器运行时占用的资源比这个值大，容器将会被kill掉，不再运行。
+	（4）requests资源域的键需要以"resources-requests-"开头，然后以1,2,3,4...依次定义，值中的cpu和memory可以不用全定义，例如：
 
+		"resources-requests-1": {
+            "cpu": "100m",
+            "memory":"20Mi"
+        }	
+		"resources-requests-2": {
+            "cpu": "300m",
+            "memory":"5000Mi"
+        }
+		...
+	（5）limits资源的键需要以"resources-limits-"开头，然后以1,2,3,4...依次定义,值中的cpu和memory可以不用全定义，例如：
+
+		"resources-limits-1": {
+            "cpu": "200m"
+        },
+	（6）cpu的单位为m，表示把一个cpu线程分成1000份,cpu: "300m"，表示0.3个cpu。
+	（7）memory的单位为Mi,表示MB内存，200Mi,表示200MB内存
+	（8）limits中的cpu值和memory值不能比requests中的cpu和memory值小，否则容器创建失败。
+	（9）一般建议不要定义limits资源，因为对程序需要多少资源不熟悉，如果定义不合理，程序将永远不会运行成功，直接被kill掉。
+	（10）后面的step域如果要引用该资源限制，可以在该域中加上如下语句：
+	
+		"limit-type":"resources-limits-1",
+		"request-type":"resources-requests-2"
+	(11) 没有资源限制可以不用定义，这是可选项。
+		
 step域说明：
 
 	（1） step域是由众多的step组成，并且step编号必须从step1开始，连续不间断，不能重复定义，也就是说不能同时出现多个同样的step编号，下面是一个step例子：
@@ -225,7 +252,9 @@ step域说明：
         	"container": "registry.vega.com:5000/fastqc:1.0",
         	"command": ["fastqc"],
         	"args":["-o step1@","-f fastq","step0@test1_R1.fastq step0@test1_R2.fastq"],
-        	"sub-args": []
+        	"sub-args": [],
+			"request-type":"resources-requests-2", 
+			"limit": ["300m","100Mi"]
 		}
 		pre-steps: 该step所依赖的step,有多少写多少，没有就写成[]。
 		command-name: 为该step运行的命令取一个别名，不能留空。
@@ -233,6 +262,8 @@ step域说明：
 		command: 该step所需要运行的命令，数组内容会拼接成字符串，不能留空。
 		args: 命令所需的参数，数组内容会拼接成字符串，不能留空。
 		sub-args: 数组类型，数组的长度代表在该step需要启动多少个这样的容器，来处理不同输入不同输出，举个例子，如果sub-args数组为["a.out","b.out"],那么该step总共需要启动两个容器，第一个容器处理的命令是command + args + sub-args[0],第二个容器处理的命令是command + args + sub-args[1]，这样设计的目的是可让angelina具有split-merge功能，不过merge得自行处理。
+		request-type(或者limit-type): 字符串，使用上面定义的资源域中的值。
+		limit(或者request): 不用上面资源域定义的资源限制，直接定义资源限制，数组类型，第一个值为cpu使用量，第二个值为内存使用量。不能与limit-type(或者request-type)同时使用。
 	（2） 下面是一个启动多个相同step的例子：
 	
 		"step2": {
@@ -256,8 +287,9 @@ step域说明：
         	"sub-args": ["a.out","b.out"]
 		}
 		step2用到了step1的my.txt，只需要使用step1@my.txt就行。
-	（5） 在step当中用到的所有文件都是使用相对路径。
-	（6） step0只能被引用，不能被定义,否则模板校验不会通过。
+	（5）在step当中用到的所有文件都是使用相对路径。
+	（6）step0只能被引用，不能被定义,否则模板校验不会通过。
+	（7）除了request-type（或者limit-type）和 request(或者limit)可以不定义外，其他都必须填写，没有用相应的空值替代。
 
 **一个简单的模板例子**
 	
@@ -272,6 +304,13 @@ step域说明：
 			"TRIM": "/root/Trimmomatic-0.36/trimmomatic-0.36.jar",
 			"TRIMDIR":"/root/Trimmomatic-0.36"
 		},
+		"resources-limits-1": {
+            "cpu": "200m"
+        },
+        "resources-requests-1": {
+            "cpu": "100m",
+            "memory":"20Mi"
+        },
 		"step1": {
         	"pre-steps": [],
 			"command-name":"fastqc",
@@ -283,7 +322,8 @@ step域说明：
 				"-f fastq",
 				"step0@test1_R1.fastq step0@test1_R2.fastq"
 			],
-        	"sub-args": []
+        	"sub-args": [],
+			"request-type": "resources-requests-1"
 		},
 		"step2": {
         	"pre-steps": [],
@@ -297,7 +337,9 @@ step域说明：
 				"LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:75",
 				"ILLUMINACLIP:params@TRIMDIR/adapters/TruSeq3-PE-2.fa:2:30:10"
 			],
-        	"sub-args": []
+        	"sub-args": [],
+			"request-type": "resources-requests-1",
+			"limit-type": "resources-limit-1"
 		},
 		"step3": {
 			"pre-steps":["step2"],
@@ -313,7 +355,9 @@ step域说明：
 			"sub-args":[
 				"step2@test1_R1_paired.fastq step2@test1_R2_paired.fastq > step3@test1.sam",
 				"step2@test1_R1_paired.fastq step2@test1_R2_paired.fastq > step3@test2.sam"
-			]
+			],
+			"request":["30m","100Mi"],
+			"limit": ["100m","300Mi"]
 		}
 	}
 模板会自动转化成如下模板，所以不需要写文件的绝对路径（这个例子中job名为mahui,data-volume会被挂载到容器的/mnt/data,refer-volume会被挂载到容器的/mnt/refer）：
@@ -325,7 +369,8 @@ step域说明：
 			"Args":"-t 2 -o /mnt/data/mahui/step1/  -f fastq  /mnt/data/mahui/step0/test1_R1.fastq /mnt/data/mahui/step0/test1_R2.fastq ",
 			"Container":"registry.vega.com:5000/fastqc:1.0",
 			"Prestep":[],
-			"SubArgs":[]
+			"SubArgs":[],
+			"ResourcesRequests":["100m","20Mi"]
 		},
 		"step2":{
 			"Command":"java -jar  /root/Trimmomatic-0.36/trimmomatic-0.36.jar  ",
@@ -333,7 +378,9 @@ step域说明：
 			"Args":"PE -phred33 -threads 2  /mnt/data/mahui/step0/test1_R1.fastq /mnt/data/mahui/step0/test1_R2.fastq /mnt/data/mahui/step2/test1_R1_paired.fastq /mnt/data/mahui/step2/test1_R1_unpaired.fastq /mnt/data/mahui/step2/test1_R2_paired.fastq /mnt/data/mahui/step2/test1_R2_unpaired.fastq  LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:75 ILLUMINACLIP:/root/Trimmomatic-0.36/adapters/TruSeq3-PE-2.fa:2:30:10",
 			"Container":"registry.vega.com:5000/trim:1.0",
 			"Prestep":[],
-			"SubArgs":[]
+			"SubArgs":[],
+			"ResourcesLimits":["200m",""],
+			"ResourcesRequests":["100m","20Mi"]
 		},
 		"step3":{
 			"Command":"bwa mem",
@@ -341,13 +388,246 @@ step域说明：
 			"Args":"-t 1 -M -R '@RG\\tID:ST_Test_Yang_329_H7NNYALXX_6\\tSM:ST_Test_Liuhong\\tLB:WBJPE171539-01\\tPU:H7NNYALXX_6\\tPL:illumina\\tCN:thorgene'  /mnt/refer/reffa/b37/human_g1k_v37_decoy.fasta  ",
 			"Container":"registry.vega.com:5000/bwa:1.0",
 			"Prestep":["step2"],
-			"SubArgs":[" /mnt/data/mahui/step2/test1_R1_paired.fastq /mnt/data/mahui/step2/test1_R2_paired.fastq > /mnt/data/mahui/step3/test1.sam "," /mnt/data/mahui/step2/test1_R1_paired.fastq /mnt/data/mahui/step2/test1_R2_paired.fastq > /mnt/data/mahui/step3/test2.sam "]
+			"SubArgs":[
+				" /mnt/data/mahui/step2/test1_R1_paired.fastq /mnt/data/mahui/step2/test1_R2_paired.fastq > /mnt/data/mahui/step3/test1.sam ",
+				" /mnt/data/mahui/step2/test1_R1_paired.fastq /mnt/data/mahui/step2/test1_R2_paired.fastq > /mnt/data/mahui/step3/test2.sam "
+			],
+			"ResourcesRequests":["30m","100Mi"],
+			"ResourcesLimits":["100m","300Mi"]
 		}
 	}
 
+使用方法：
 
+1.为了做测试我做了一个测试容器，这个容器有一个test.sh脚本，脚本内容如下：
 
+	#!/bin/bash
+	status=$1
+	mysleep=$2
+	infile=$3
+	outfile=$4
+	echo "command start to run"
+	echo "sleep $mysleep seconds"
+	sleep $mysleep
+	if ! cat $infile &> /dev/null;then
+	    exit 1
+	fi
+	echo ${DEPLOYMENTID}" run me" > $outfile
+	echo "command run finished"
+	if [ $status == "succeed" ];then
+	    exit 0
+	else
+	    exit 1
+	fi
 
+	接收4个参数：
+	（1）status: 命令最后是运行成功还是失败，succeed表示成功,failed表示失败
+	（2）mysleep: sleep多少秒钟，用来模拟容器需要运行多长时间
+	（3）infile: 用来模拟运行该容器需要的输入文件。
+	（4）outfile: 用来模拟容器的输出文件
 
+2.定义一个pipeline.json,内容如下：
 
+	{
+		"pipeline-name": "test",
+		"pipeline-description": "test  pipeline",
+		"pipeline-content": {
+			"input": [
+				"entry-file-1.txt ==> step0-out-1.txt",
+				"entry-file-2.txt ==> step0-out-2.txt",
+				"*_other.txt  ==> step0-other-out.txt"
+			],
+			"params": {
+				"STEP2-STATUS": "succeed",
+				"STATUS": "succeed",
+				"SLEEP": "80"
+			},
+			"resources-requests-1": {
+				"cpu":"500m",
+				"memory": "600Mi"
+			},
+			"resources-requests-2": {
+				"cpu":"600m",
+				"memory":"1000Mi"
+			},
+			"step1": {
+				"pre-steps": [],
+				"command-name":"step1-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["params@STATUS","params@SLEEP","step0@step0-out-1.txt","step1@step1-out.txt"],
+	        	"sub-args": [],
+				"request-type": "resources-requests-1"
+			},
+			"step2": {
+				"pre-steps": [],
+				"command-name":"step2-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["succeed","50","step0@step0-out-2.txt","step2@step2-out.txt"],
+	        	"sub-args": [],
+				"request-type": "resources-requests-1"
+			},
+			"step3": {
+				"pre-steps": ["step1","step2"],
+				"command-name":"step3-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["params@STATUS","params@SLEEP","step0@step0-out-1.txt","step3@step3-out.txt"],
+	        	"sub-args": [],
+				"request": ["500m","500Mi"] 
+			},
+			"step4": {
+				"pre-steps": ["step2","step3"],
+				"command-name":"step4-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["succeed","70","step2@step2-out.txt","step4@step4-out.txt"],
+	        	"sub-args": [],
+				"request-type": "resources-requests-2"
+			},
+			"step5": {
+				"pre-steps": ["step4","step3"],
+				"command-name":"step5-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["succeed","params@SLEEP","step4@step4-out.txt"],
+	        	"sub-args": ["step5@step5-out.txt","step5@step5-out-1.txt"],
+				"request": ["800m","900Mi"]
+			},
+			"step6": {
+				"pre-steps": ["step5"],
+				"command-name":"step6-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["failed","20","step5@step5-out.txt"],
+	        	"sub-args": ["step6@step6-out.txt","step6@step6-out-1.txt","step6@step6-out-3.txt"],
+				"request-type": "resources-requests-1"
+			},
+			"step7": {
+				"pre-steps": ["step6"],
+				"command-name":"step7-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["succeed","10","step6@step6-out.txt","step7@step7-out.txt"],
+	        	"sub-args": [],
+				"request-type": "resources-requests-1"
+			},
+			"step8": {
+				"pre-steps": ["step6"],
+				"command-name":"step8-cmd",
+	        	"container": "happy365/angelina-test:2.0",
+	        	"command": ["test.sh"],
+	        	"args":["succeed","params@SLEEP","step6@step6-out-1.txt","step8@step8-out.txt"],
+	        	"sub-args": [],
+				"request": ["400m","500Mi"]
+			}
+		
+		}
+	}
+
+3.初始化模板：
+
+	[root@kuber-master docker]# angelina -s pipeline.json
+
+	在初始化过程中，会对模板进行严格校验，请按照模板要求填写：
 	
+	如果出现以下错误，表名该文件不符合json文件的格式：
+	
+	invalid pipeline file,parse failed,some commas are add in bad area or don't delete the annotation?
+
+4.创建输入目录,并包括以下文件，文件内容随意：
+	
+	[root@kuber-master sample]# ll input/
+	total 2
+	-rw-r--r-- 1 root root 19 May 10 14:11 entry-file-1.txt
+	-rw-r--r-- 1 root root 20 May 10 14:11 entry-file-2.txt
+	-rw-r--r-- 1 root root 12 May 10 14:13 test2_other.txt
+
+5.创建一个配置文件，使用如下命令产生模板：
+
+	[root@kuber-master sample]# angelina -g conf	
+    [root@kuber-master sample]# cat config.json
+	{
+		"input-directory": "/root/biofile/sample/input", //输入目录
+		"glusterfs-entry-directory": "/mnt/data",  // glusterfs data-volume的挂载点
+		"sample-name": "test",  //作业名
+		"redis-address":"",   // redis server 地址，如果为空，必须设置REDISADDR环境变量
+		"template-env": ["REDIS=33","YANG=33"],  // 模板的params参数，在这里可以动态传入
+		"pipeline-template-name": "test", // 模板名称
+		"force-to-cover": "yes" // 是否强制覆盖上次的内容
+	}
+
+6.创建作业：
+
+	[root@kuber-master sample]# angelina -c config.json
+
+7.查看作业运行情况：
+
+	[root@kuber-master sample]# angelina -j test 
+
+	                                                      Running  Status                                             
+	*******************************************************************************************************************************
+	Software          Name: angelina
+	Software       Version: v2.0
+	Template          Name: test
+	Template Estimate Time: 0h 0m 0s
+	Running Sample    Name: test
+	Already Running   Time: 0h 8m 14s
+	------------------------------------------------------------------------------------------------------------------------------
+	Date       Time       Step     Sub  Status   Deployment-Id    Run-Time     Pre-Steps             Command                  
+	------------------------------------------------------------------------------------------------------------------------------
+	2018-05-10 14:23:06   step1    0    ready    not allocate     0h 0m 0s     ---                   step1-cmd                
+	2018-05-10 14:23:06   step2    0    ready    not allocate     0h 0m 0s     ---                   step2-cmd                
+	2018-05-10 14:23:06   step3    0    ready    not allocate     0h 0m 0s     1,2                   step3-cmd                
+	2018-05-10 14:23:06   step4    0    ready    not allocate     0h 0m 0s     2,3                   step4-cmd                
+	2018-05-10 14:23:06   step5    0    ready    not allocate     0h 0m 0s     4,3                   step5-cmd                
+	2018-05-10 14:23:06   step5    1    ready    not allocate     0h 0m 0s     4,3                   step5-cmd                
+	2018-05-10 14:23:06   step6    0    ready    not allocate     0h 0m 0s     5                     step6-cmd                
+	2018-05-10 14:23:06   step6    1    ready    not allocate     0h 0m 0s     5                     step6-cmd                
+	2018-05-10 14:23:06   step6    2    ready    not allocate     0h 0m 0s     5                     step6-cmd                
+	2018-05-10 14:23:06   step7    0    ready    not allocate     0h 0m 0s     6                     step7-cmd                
+	2018-05-10 14:23:06   step8    0    ready    not allocate     0h 0m 0s     6                     step8-cmd                
+	*******************************************************************************************************************************
+
+	加上 -k 选项可以持续查看
+
+8.查看整个系统的作业运行情况：
+
+	[root@kuber-master sample]# angelina -J
+
+
+	                                Angelina                                    
+	********************************************************************************
+	Date       Time       Job Id           Status         Job Name
+	--------------------------------------------------------------------------------
+	2018-05-10 14:42:16   pipe15b0f00a08   Running        test
+	2018-05-10 14:42:16   pipe1344e3aab5   Finished       yang80
+	2018-05-10 14:42:16   pipef7f5f4583c   Finished       yang86
+	2018-05-10 14:42:16   pipe5d61494236   Finished       yang19
+	2018-05-10 14:42:16   pipe7e7cf0b5c9   Finished       yang25
+	2018-05-10 14:42:16   pipea790286f70   Finished       yang26
+	2018-05-10 14:42:16   pipeead06fecd2   Finished       yang15
+	2018-05-10 14:42:16   pipe416798286b   Finished       yang16
+	2018-05-10 14:42:16   pipecef04dd8f7   Finished       yang38
+	2018-05-10 14:42:16   piped0d60612c8   Finished       yang68
+	2018-05-10 14:42:16   pipeb788eabf52   Finished       yang90
+	2018-05-10 14:42:16   pipe57117abcce   Finished       yang2
+	2018-05-10 14:42:16   piped61c7326ed   Finished       yang5
+	********************************************************************************
+
+9.删除指定作业：
+ 
+ 	[root@kuber-master sample]# angelina -d test
+	[root@kuber-master sample]# angelina -J
+	                                   Angelina                                    
+	********************************************************************************
+	Date       Time       Job Id           Status         Job Name
+	--------------------------------------------------------------------------------
+	2018-05-10 14:44:50   pipe15b0f00a08   Deleting       test
+	2018-05-10 14:44:50   pipe6189bf0463   Finished       yang76
+	2018-05-10 14:44:50   pipe71e47a4b1d   Finished       yang88
+	....
+	....
+	
+	********************************************************************************

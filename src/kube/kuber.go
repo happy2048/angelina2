@@ -1,44 +1,29 @@
 package kube
 import(
-    "myutils"
-	"redisdb"
+	"net/http"
+	"strings"
 	"fmt"
+	"strconv"
+	"path"
+	"encoding/json"
+	"crypto/tls"
 	"io/ioutil"
-    apiv1 "k8s.io/api/core/v1"
-    exv1beta "k8s.io/api/extensions/v1beta1"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/client-go/kubernetes"
-    "k8s.io/client-go/tools/clientcmd"
+	gjson "github.com/tidwall/gjson"
 )
-/*
-* CreateDeployArgs: 创建deployment传递参数使用
-*/
-type PodPhase string
-
-const (
-    // PodPending means the pod has been accepted by the system, but one or more of the containers
-    // has not been started. This includes time before being bound to a node, as well as time spent
-    // pulling images onto the host.
-    PodPending PodPhase = "Pending"
-    // PodRunning means the pod has been bound to a node and all of the containers have been started.
-    // At least one container is still running or is in the process of being restarted.
-    PodRunning PodPhase = "Running"
-    // PodSucceeded means that all containers in the pod have voluntarily terminated
-    // with a container exit code of 0, and the system is not going to restart any of these containers.
-    PodSucceeded PodPhase = "Succeeded"
-    // PodFailed means that all containers in the pod have terminated, and at least one container has
-    // terminated in a failure (exited with a non-zero exit code or was stopped by the system).
-    PodFailed PodPhase = "Failed"
-    // PodUnknown means that for some reason the state of the pod could not be obtained, typically due
-    // to an error in communicating with the host of the pod.
-    PodUnknown PodPhase = "Unknown"
-)
+type ReadQuota struct {
+	LimitsCpu string `json:"limits.cpu"`
+	LimitsMemory string `json:"limits.memory"`
+	RequestsCpu string `json:"requests.cpu"`
+	RequestsMemory string `json:"requests.memory"`
+}
 type DeploymentStatus int
 const (
-	_ DeploymentStatus = iota
-	NotFound
-	Available
-	UnAvailable
+    _ DeploymentStatus = iota
+    NotFound
+    Running
+	Pending
+    UnAvailable
+	OtherError
 )
 type CreateDeployArgs struct {
 	Sample string  // 属于哪一个sample
@@ -46,343 +31,368 @@ type CreateDeployArgs struct {
 	Index string
 	DeployId string
 	Container string //创建deployment使用到的container
+	Limits []string
+	Requests []string
 }
-type K8sClient struct {
-	ClientSet *kubernetes.Clientset
-	Args *Config
+type InitArgs struct {
+	ApiServer string
+	ControllerEntry string
+	DeploymentTemp  string
+	Namespace string
+	StartCmd string
+	QuotaName string
+	GlusterfsEndpoint string
+	GlusterfsDataVolume string
+	GlusterfsReferVolume string
 }
-type Config struct {
-	AuthFile string //认证文件路径
-	ReferVolume string // glusterfs refer volume名称
-	DataVolume string  // glusterfs data volume 名称
-	EndpointsName string // glusterfs endpoints 名称
-	RedisAddr string    //redis address
-	ControllerService   string 
-	ScriptUrl string   // 各个容器需要下载的script地址 
-	NameSpace string // kubernetes 名称空间
-	DataDir string  // data dir 在容器中路径，默认为/mnt/data
-	ReferDir string // refer dir 在容器中路径 ，默认为/mnt/refer
-	StartRunCmd string  // 容器开始运行的命令，默认为/bin/bash /usr/bin/rundoc.sh
-}
-func  NewK8sClient(redisAddr string) *K8sClient {
-	db := redisdb.NewRedisDB("tcp",redisAddr)
-    authString,_ := db.RedisHashGet("kubernetesConfig","AuthFile")
-    referVolume,_ := db.RedisHashGet("kubernetesConfig","ReferVolume")
-    dataVolume,_ := db.RedisHashGet("kubernetesConfig","DataVolume")
-    endpoints,_ := db.RedisHashGet("kubernetesConfig","GlusterEndpoints")
-    namespace,_ := db.RedisHashGet("kubernetesConfig","Namespace")
-    scriptUrl,_ := db.RedisHashGet("kubernetesConfig","ScriptUrl")
-    startRunCmd,_ := db.RedisHashGet("kubernetesConfig","StartRunCmd")
-    ctrlService,_ := db.RedisHashGet("kubernetesConfig","ControllerServiceEntry")
-    dataDir := "/mnt/data"
-    referDir := "/mnt/refer"
-    auth := "/root/.kube.tmp.conf"
-	if scriptUrl == "" {
-		scriptUrl = "http://" + ctrlService + "/angelina-runner"
-	}
-    ioutil.WriteFile(auth,[]byte(authString),0644)
-	st := initClientSets(auth)
-	td := &Config{
-		AuthFile: auth,
-		ReferVolume: referVolume,
-		DataVolume: dataVolume,
-		EndpointsName: endpoints,
-		RedisAddr: redisAddr,
-		ScriptUrl: scriptUrl,
-		NameSpace: namespace,
-		DataDir: dataDir,
-		ControllerService: ctrlService,
-		StartRunCmd: startRunCmd,
-		ReferDir: referDir}
-	return &K8sClient {
-		ClientSet: st,
-		Args: td}
-}
-/*
-func (k8s *K8sClient) CreateController(sample string) (bool,error) {
-	deploymentId := myutils.GetSamplePrefix(sample)
-	deployment := &exv1beta.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: deploymentId,
-			Namespace: k8s.Args.NameSpace,
-		},
-		Spec: exv1beta.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": deploymentId,
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": deploymentId,
-					},
-				},
-				Spec: apiv1.PodSpec{
-					Volumes: []apiv1.Volume{
-						{
-							Name: "refer-volume",
-							VolumeSource: apiv1.VolumeSource{
-								Glusterfs: &apiv1.GlusterfsVolumeSource {
-									EndpointsName: k8s.Args.EndpointsName,
-									Path: k8s.Args.ReferVolume,
-									ReadOnly: true,
-									
-								},
-							},
-						},	
-						{
-							Name: "data-volume",
-							VolumeSource: apiv1.VolumeSource{
-								Glusterfs: &apiv1.GlusterfsVolumeSource {
-									EndpointsName: k8s.Args.EndpointsName,
-									Path: k8s.Args.DataVolume,
-									ReadOnly: false,
-									
-								},
-							},
-						},	
-					},
-					Containers: []apiv1.Container{
-						{
-							Name:  deploymentId,
-							Image: k8s.Args.ControllerContainer,
-							Env: []apiv1.EnvVar{
-								{
-									Name: "REDISADDR",
-									Value: k8s.Args.RedisAddr,
-								},
-								{
-									Name: "SAMPLE",
-									Value: sample,
-								},
-								{
-									Name: "DEPLOYMENTID",
-									Value: deploymentId,
-								},				
-								{
-									Name: "DATADIR",
-									Value: k8s.Args.DataDir,
-								},
-								{
-									Name: "REFERDIR",
-									Value: k8s.Args.ReferDir,
-								},
-							},
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:  "refer-volume",
-									MountPath: k8s.Args.ReferDir,
-								},
-								{
-									Name:  "data-volume",
-									MountPath: k8s.Args.DataDir,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	_,err := k8s.ClientSet.ExtensionsV1beta1().Deployments(k8s.Args.NameSpace).Create(deployment)
-	if err != nil {
-		myutils.Print("Error"," Create Deployment Failed,reason:" + err.Error(),false)
-		return false,err
-	}else {
-		return true,err
-	}		
+type Kube struct {
+	ApiServer string
+	Protocol  string
+	GlusterfsEndpoint string
+	GlusterfsDataVolume string
+	GlusterfsReferVolume string
+    AngelinaControllerEntry string
+	DeploymentTemplate string
+	Namespace string
+	StartCmd string
+	QuotaName string
 
 }
-*/
-func (k8s *K8sClient) CreateDeployment(cda *CreateDeployArgs) (bool,error)  {
-	deploymentId := cda.DeployId
-	prefix := myutils.GetSamplePrefix(cda.Sample)
-	deployment := &exv1beta.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: deploymentId,
-			Namespace: k8s.Args.NameSpace,
-		},
-		Spec: exv1beta.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": deploymentId,
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": deploymentId,
-					},
-				},
-				Spec: apiv1.PodSpec{
-					Volumes: []apiv1.Volume{
-						{
-							Name: "refer-volume",
-							VolumeSource: apiv1.VolumeSource{
-								Glusterfs: &apiv1.GlusterfsVolumeSource {
-									EndpointsName: k8s.Args.EndpointsName,
-									Path: k8s.Args.ReferVolume,
-									ReadOnly: true,
-									
-								},
-							},
-						},	
-						{
-							Name: "data-volume",
-							VolumeSource: apiv1.VolumeSource{
-								Glusterfs: &apiv1.GlusterfsVolumeSource {
-									EndpointsName: k8s.Args.EndpointsName,
-									Path: k8s.Args.DataVolume,
-									ReadOnly: false,
-									
-								},
-							},
-						},	
-					},
-					Containers: []apiv1.Container{
-						{
-							Name:  deploymentId,
-							Image: cda.Container,
-							Command: []string{k8s.Args.StartRunCmd},
-							Env: []apiv1.EnvVar{
-								{
-									Name: "REDISADDR",
-									Value: k8s.Args.RedisAddr,
-								},
-								{
-									Name: "SAMPLE",
-									Value: cda.Sample,
-								},
-								{
-									Name: "DEPLOYMENTID",
-									Value: deploymentId,
-								},				
-								{
-									Name: "SERVICE",
-									Value: k8s.Args.ControllerService,
-								},				
-								{
-									Name: "SCRIPTURL",
-									Value: k8s.Args.ScriptUrl,
-								},
-								{
-									Name: "STEP",
-									Value: cda.Step,
-						
-								},
-								{
-									Name: "INDEX",
-									Value: cda.Index,
-						
-								},
-								{
-									Name: "SENDMESSAGECHAN",
-									Value:  prefix + "__" + "ReceiveFromCon",
-								},
-								{
-									Name: "RECEIVEMESSAGECHAN",
-									Value: prefix + "__" + "SendToCon",
-								},
-								{
-									Name: "DATADIR",
-									Value: k8s.Args.DataDir,
-								},
-								{
-									Name: "REFERDIR",
-									Value: k8s.Args.ReferDir,
-								},
-							},
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:  "refer-volume",
-									MountPath: k8s.Args.ReferDir,
-								},
-								{
-									Name:  "data-volume",
-									MountPath: k8s.Args.DataDir,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	_,err := k8s.ClientSet.ExtensionsV1beta1().Deployments(k8s.Args.NameSpace).Create(deployment)
-	if err != nil {
-		myutils.Print("Error"," Create Deployment Failed,reason:" + err.Error(),false)
-		return false,err
+func NewKube(init *InitArgs) *Kube {
+	protocol := strings.Split(init.ApiServer,"://")[0]
+	return &Kube{
+		ApiServer: init.ApiServer,
+		Protocol: protocol,
+		StartCmd: init.StartCmd,
+		Namespace: init.Namespace,
+		QuotaName: init.QuotaName,
+		GlusterfsEndpoint: init.GlusterfsEndpoint,
+		GlusterfsDataVolume: init.GlusterfsDataVolume,
+		GlusterfsReferVolume: init.GlusterfsReferVolume,
+		AngelinaControllerEntry: init.ControllerEntry,
+		DeploymentTemplate: init.DeploymentTemp}
+}
+func (k8s *Kube) CreateDeployment(cda *CreateDeployArgs) error {
+	tdata := k8s.DeploymentTemplate
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-NAME",cda.DeployId,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-NAMESPACE",k8s.Namespace,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-IMAGE",cda.Container,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-COMMAND",k8s.StartCmd,-1)
+	if cda.Requests[0] == "" {
+		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REQUESTS-CPU","0m",-1)
 	}else {
-		return true,err
+		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REQUESTS-CPU",cda.Requests[0],-1)
 	}
-}
-func (k8s *K8sClient) DeleteDeployment(deploymentId string) (bool,error) {
-	deletePolicy := metav1.DeletePropagationForeground
-    err := k8s.ClientSet.ExtensionsV1beta1().Deployments(k8s.Args.NameSpace).Delete(deploymentId, &metav1.DeleteOptions{
-        PropagationPolicy: &deletePolicy,
-    }) 
-	if  err != nil {
-        myutils.Print("Error"," Delete deployment failed",false)
-		return false,err
-    }
-    myutils.Print("Info"," Delete deployment succeed",false)
-	return true,err
-}
-func (k8s *K8sClient) DeploymentExist(deploymentId string) (DeploymentStatus) {
-	dep, err := k8s.ClientSet.ExtensionsV1beta1().Deployments(k8s.Args.NameSpace).Get(deploymentId, metav1.GetOptions{})
-	if err != nil {
-		return NotFound
+	if cda.Requests[1] == "" {
+		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REQUESTS-MEMORY","0Mi",-1)
+	}else {
+		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REQUESTS-MEMORY",cda.Requests[1],-1)
 	}
-	if dep.Status.AvailableReplicas > 0 {
-		return Available
+	delete := 0
+	if cda.Limits[0] == "" {
+		if cda.Requests[0] == "" {
+			tdata = strings.Replace(tdata,"ANGELINA-RUNNER-LIMITS-CPU","0m",-1)
+		}else {
+			tdata = strings.Replace(tdata,"cpu: ANGELINA-RUNNER-LIMITS-CPU","",-1)
+			delete++
+		}
+	}else  {
+		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-LIMITS-CPU",cda.Limits[0],-1)
 	}
-	return UnAvailable
+	if cda.Limits[1] == "" {
+		if cda.Requests[1] == "" {
+			tdata = strings.Replace(tdata,"ANGELINA-RUNNER-LIMITS-MEMORY","0Mi",-1)
+		}else {
+			tdata = strings.Replace(tdata,"memory: ANGELINA-RUNNER-LIMITS-MEMORY","",-1)
+			delete++
+		}
+	}else {
+		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-LIMITS-MEMORY",cda.Limits[1],-1)
+	}
 	
+	if delete == 2 {
+		tdata = strings.Replace(tdata,"limits:","",-1)
+	}
+	/*
+	if cda.Requests[0] == cda.Requests[1] && cda.Requests[1] == "" {
+		tdata = strings.Replace(tdata,"requests:","",-1)
+	}
+	if strings.Index(tdata,"limits:") == -1 && strings.Index(tdata,"requests:") == -1 {
+		tdata = strings.Replace(tdata,"resources:","",-1)
+	}
+	*/
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-JOB",cda.Sample,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-CONTROLLER-ENTRY",k8s.AngelinaControllerEntry,-1)
+	scriptUrl := "http://" + k8s.AngelinaControllerEntry + "/angelina-runner"
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-SCRIPTURL",scriptUrl,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-STEP",cda.Step,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-INDEX",cda.Index,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-DATADIR","/mnt/data",-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REFERDIR","/mnt/refer",-1)
+	tdata = strings.Replace(tdata,"ANGELINA-GLUSTERFS-ENDPOINT",k8s.GlusterfsEndpoint,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-GLUSTERFS-DATA-VOLUME",k8s.GlusterfsDataVolume,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-GLUSTERFS-REFER-VOLUME",k8s.GlusterfsReferVolume,-1)
+	return k8s.PostInfo(tdata)
 }
-func (k8s *K8sClient) PodsExist(key string) (bool,error) {
-	pods, err := k8s.ClientSet.CoreV1().Pods(k8s.Args.NameSpace).List(metav1.ListOptions{})
+func (k8s *Kube) DeleteDeployment(deploymentId string) error {
+	//subUrl := path.Join("apis/apps/v1beta1/namespaces",k8s.Namespace,"deployments",deploymentId)
+	subUrl := path.Join("api/v1/namespaces",k8s.Namespace,"pods",deploymentId)
+	url := strings.Trim(k8s.ApiServer,"/") + "/" + subUrl 
+	response,err := k8s.HttpOperate("DELETE",url,"",nil)
+    if err != nil {
+        return err
+    }
+	if response.StatusCode >= 200 && response.StatusCode <= 300 {
+		return nil
+	}
+	if response.StatusCode == 404 {
+		return fmt.Errorf("%s","deployment not found")
+	}
+	body,err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return false,err
+		return fmt.Errorf("Error: read response body error,reason:%s",err.Error())
 	}
-	if len(pods.Items) == 0 {
-		return false,nil
+    return fmt.Errorf("%s",string(body))
+}
+func TranMemUnit(item string) int64 {
+	item = strings.Trim(item," ")
+	if item == "" {
+		return 0
 	}
+	if strings.HasSuffix(item,"Ki") {
+		value := ParseValue(item,"Ki")
+		if value == int64(-1) {
+			return value
+		}
+		return value * int64(1 << 10)
+	}
+	if strings.HasSuffix(item,"Mi") {
+		value := ParseValue(item,"Mi")
+		if value == int64(-1) {
+			return value
+		}
+		return value * int64(1 << 20)
+	}
+	if strings.HasSuffix(item,"Gi") {
+		value := ParseValue(item,"Gi")
+		if value == int64(-1) {
+			return value
+		}
+		return value * (1 << 30)
+	}
+	if strings.HasSuffix(item,"Ti") {
+		value := ParseValue(item,"Ti")
+		if value == int64(-1) {
+			return value
+		}
+		return value * int64(1  << 40)
+	}
+	data,err := strconv.ParseInt(item,10,64)
+	if err != nil {
+		return int64(-1)
+	}
+	return data
+}
+func TranCpuUnit(item string) int64 {
+	item = strings.Trim(item," ")
+	if item == "" {
+		return 0
+	}
+	if strings.HasSuffix(item,"m") {
+		value := ParseValue(item,"m")
+		if value == int64(-1) {
+			return value
+		}
+		return value
+	}
+	data,err := strconv.ParseInt(item,10,64)
+	if err != nil {
+		return int64(-1)
+	}
+	return data * 1000
+}
+func ParseValue(item,unit string) int64 {
+	t := strings.Split(item,unit)
+	if len(t) == 2 && t[1] == "" {
+		value,err := strconv.ParseInt(t[0],10,64)
+		if err != nil {
+			return int64(-1)
+		}
+		return value
+	}
+	return int64(-1)
+}
+func (k8s *Kube) GetQuotaResources(myCpus,myMems string) (error) {
+	subUrl := path.Join("api/v1/namespaces",k8s.Namespace,"resourcequotas",k8s.QuotaName,"status")
+	url :=  strings.Trim(k8s.ApiServer,"/") + "/" + subUrl
+	totalCpus := int64(0)
+	totalMem := int64(0)
+	reInfo := make(map[string]ReadQuota)
+	response,err := k8s.HttpOperate("GET",url,"",nil)
+	if err != nil {
+		return err
+	}
+	body,err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("Error: read response body error,reason:%s",err.Error())
+	}
+	if response.StatusCode == 404 {
+		return nil
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+    	return fmt.Errorf("%s",string(body))
+	}
+	jsonObj := gjson.Parse(string(body))
+	jsonObj.ForEach(func(key,value gjson.Result) bool {
+		if key.String() == "status" {
+			if value.Get("hard").Exists() {
+				var mydata ReadQuota
+				json.Unmarshal([]byte(value.Get("hard").String()),&mydata)
+				reInfo["hard"] = mydata
+			}				
+			if value.Get("used").Exists() {
+				var mydata ReadQuota
+				json.Unmarshal([]byte(value.Get("used").String()),&mydata)
+				reInfo["used"] = mydata
+			}				
+		}
+		return true 
+	})
+	_,ok1 := reInfo["hard"]
+	_,ok2 := reInfo["used"]
+	if ok1 && ok2 {
+		totalCpus = TranCpuUnit(reInfo["hard"].RequestsCpu) - TranCpuUnit(reInfo["used"].RequestsCpu)
+		totalMem = TranMemUnit(reInfo["hard"].RequestsMemory) - TranMemUnit(reInfo["used"].RequestsMemory)
+	}else {
+		return nil
+	}
+	if TranMemUnit(reInfo["hard"].RequestsMemory) == 0 && TranCpuUnit(reInfo["hard"].RequestsCpu) == 0 {
+		return nil
+	}
+	if TranCpuUnit(reInfo["hard"].RequestsCpu) == 0 && totalMem >= TranMemUnit(myMems) {
+		return nil
+	}
+	if TranMemUnit(reInfo["hard"].RequestsMemory) == 0 && totalCpus >= TranCpuUnit(myCpus) {
+		return nil
+	}
+	if totalCpus >= TranCpuUnit(myCpus) && totalMem >= TranMemUnit(myMems) {
+		return nil
+	}
+	return fmt.Errorf("no resource to allocate")
 
-	for _,pod := range pods.Items {
-		fmt.Println(pod.Status.Phase)
-		for _,val := range pod.Spec.Containers {
-			if val.Name == key {
-				return true,nil
+}
+func (k8s *Kube) DeploymentExist(deploymentId string) DeploymentStatus {
+	//subUrl := path.Join("apis/apps/v1beta1/namespaces",k8s.Namespace,"deployments",deploymentId,"status?pretty=true")
+	subUrl := path.Join("api/v1/namespaces",k8s.Namespace,"pods",deploymentId,"status")
+	url := strings.Trim(k8s.ApiServer,"/") + "/" + subUrl
+	response,err := k8s.HttpOperate("GET",url,"",nil)
+	reStatus := NotFound
+	if err != nil {
+		return OtherError
+	}
+	if response.StatusCode == 404 {
+		return reStatus
+	}
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return OtherError
+	}
+	jsonObj := gjson.Parse(string(body))
+	jsonObj.ForEach(func(key,value gjson.Result) bool {
+		if key.String() == "status" {
+			status := value.Get("phase").String()
+			if status == "Running" {
+				reStatus = Running
+			}else if status == "Pending" {
+				reStatus = Pending
+			}else {
+				reStatus = UnAvailable
 			}
 		}
+		return true
+	})
+	return reStatus
+}
+func (k8s *Kube) HttpOperate(method,url,data string,header map[string]string) (*http.Response,error) {
+	var client *http.Client
+	if k8s.Protocol == "https" {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+		}
+		client = &http.Client{Transport: tr}
+		
+	}else {
+		client = &http.Client{}
+	} 
+	var request *http.Request
+	var err error
+	if data == "" {
+		request,err = http.NewRequest(method,url,nil)
+	}else {
+		request,err = http.NewRequest(method,url,strings.NewReader(data))
 	}
-	return false,nil
+	if err != nil {
+		return nil,err
+	}
+	for key,value := range header {
+    	request.Header.Set(key,value)
+	}
+	response,err := client.Do(request)
+	return response,err
 }
-func (k8s *K8sClient) GetPod(key string) {
-	data,err := k8s.ClientSet.CoreV1().Pods(k8s.Args.NameSpace).Get(key,metav1.GetOptions{})
-	fmt.Println(data)
-	fmt.Println(data.Spec)
-	fmt.Println(data.Status.Reason)
-	fmt.Println(err)
-
+/*
+func main() {
+   for i := 1 ;i < 5;i++ {
+	Post("yang"+ strconv.Itoa(i),"create")
+   }
+	//GetInfo()
+	//PostInfo()
+	bdata,_ := ioutil.ReadFile("/root/biofile/test/angelina-runner-deployment.yml")
+	data := string(bdata)
+	init := &InitArgs{
+		ApiServer: "https://10.61.0.86:6443",
+		ControllerEntry: "angelina-controller:6300",
+		Namespace: "bio-system",
+		StartCmd: "rundoc.sh",
+		DeploymentTemp: data,
+		GlusterfsEndpoint: "glusterfs-cluster",
+		GlusterfsDataVolume: "data-volume",
+		GlusterfsReferVolume: "refer-volume"}
+	k8s := NewKube(init) 
+	create := &CreateDeployArgs {
+		Sample: "test1",
+		Step: "step2",
+		Index: "1",
+		Container: "happy365/angelina-controller:2.0",
+		DeployId: "mytest1",
+		Limits: []string{"34",""},
+		Requests: []string{"","45"}}
+	fmt.Println(create)
+	sdata := k8s.CreateDeployment(create)
+	fmt.Println(sdata)
+	//fmt.Println(k8s.DeleteDeployment("mytest1"))
+	re := k8s.DeploymentExist("mytest1")
+	fmt.Println(re)
+	avc,err := k8s.GetNodesResources(50000,222222222)
+	fmt.Println(avc,err)
 }
-func (k8s *K8sClient) WatchPod()  {
-	data,err := k8s.ClientSet.CoreV1().Pods(k8s.Args.NameSpace).Watch(metav1.ListOptions{})
-	fmt.Println(data)
-	fmt.Println(err)
-}
-func  initClientSets(k8sconfig string) (*kubernetes.Clientset)  {
-    config, err := clientcmd.BuildConfigFromFlags("", k8sconfig)
-    if err != nil { 
-		myutils.Print("Error","read kubernetes configure file failed",true)
-    }
-    clientset, err := kubernetes.NewForConfig(config)
+*/
+func (k8s *Kube) PostInfo(info string) error {
+	//subUrl := path.Join("apis/apps/v1beta1/namespaces",k8s.Namespace,"deployments")
+	subUrl := path.Join("api/v1/namespaces",k8s.Namespace,"pods")
+	url := strings.Trim(k8s.ApiServer,"/") + "/" + subUrl
+	header := make(map[string]string)
+	header["Content-Type"] = "application/yaml" 
+	response,err := k8s.HttpOperate("POST",url,info,header)
     if err != nil {
-		myutils.Print("Error","create clientset failed",false)
+        return err
     }
-    return clientset
+	if response.StatusCode >= 200 && response.StatusCode <= 300 {
+		return nil
+	}
+	if response.StatusCode == 409 {
+		return fmt.Errorf("Error: deployment already exists")
+	}
+	body,_ := ioutil.ReadAll(response.Body)
+	return fmt.Errorf("%s",string(body))
 }
-func int32Ptr(i int32) *int32 { return &i }

@@ -28,16 +28,16 @@ type Connector struct {
 }
 
 type EditorOptions struct {
-	Init   string `short:"I" long:"init" description:"Angelina configure file,the content of the file will be stored in the redis,and \n use -g option will generate an angelina template configure file."`
+	//Init   string `short:"I" long:"init" description:"Angelina configure file,the content of the file will be stored in the redis,and \n use -g option will generate an angelina template configure file."`
 	PushTemp  string `short:"s" long:"store" description:"Give a pipeline template file,and store it to redis."`
 	DisplayTemp  bool `short:"l" long:"list" description:"List the pipelines which have already existed."`
 	DeleteTemp   string `short:"D" long:"delete" description:"Delete the pipeline." default:""`
-	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job." default:""`
+	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job" default:""`
 	Job          string `short:"j" long:"job" description:"Given the job id or job name,get the job status." default:""`
-	AllJobStatus bool    `short:"J" long:"jobs" description:"Get  all jobs status."`
+	AllJobStatus bool    `short:"J" long:"jobs" description:"Get  all jobs status"`
 	Persist      bool `short:"k" long:"keeping" description:"Get the job status(or all jobs status) all the time,must along with -j or -J."`
 	QueryTemp  string  `short:"q" long:"query" description:"give the pipeline id or pipeline name to get it's content." default:""`
-	Gener   string  `short:"g" long:"generate" description:"Three value(\"conf\",\"pipe\",\"init\") can be given,\"pipe\" is to generate a pipeline \n template file and you can edit it and use -s to store the pipeline;\"conf\" is to \n generate running configure file and you can edit it and use -c option to run the \n sample;\"init\" is to generate angelina template configure file,then you can edit \n it and use -I to init the angelina system." default:""`
+	Gener   string  `short:"g" long:"generate" description:"Three value(\"conf\",\"pipe\") can be given,\"pipe\" is to generate a pipeline \n template file and you can edit it and use -s to store the pipeline;\"conf\" is to \n generate running configure file and you can edit it and use -c option to run the \n sample" default:""`
 }
 
 type Options struct {
@@ -80,7 +80,7 @@ func (cc *Connector) Start() {
 	cc.CheckConfig()
 	cc.CheckNoConfig()
 	cc.CheckRedis()
-	cc.InitAngelina()
+	//cc.InitAngelina()
 	cc.StorePipeline()
 	cc.DeletePipeline()	
 	cc.ListAllTemp()
@@ -202,6 +202,7 @@ func (cc *Connector) LastCheck() {
 		})
 	}
 }
+/*
 func (cc *Connector) InitAngelina() {
 	if cc.Opt.Editor.Init == "" {
 		return 
@@ -214,6 +215,7 @@ func (cc *Connector) InitAngelina() {
 	cc.ReadConfig(string(data))
 	os.Exit(0)
 }
+*/
 func (cc *Connector) CheckRedis() {
 	cc.Rv.RedisAddr = strings.Trim(cc.Opt.Redis," ")
 	if cc.Rv.RedisAddr == "" {

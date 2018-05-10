@@ -5,6 +5,7 @@ import(
 	"redisdb"
 	"sync"
 	"time"
+	"io/ioutil"
 )
 type SimpleJob struct {
 	Name string
@@ -34,10 +35,11 @@ type Controller struct {
 	JobsPool		   *JobsMap
 	MessageQueue       *myutils.StringQueue
 	LogsQueue          *myutils.StringQueue
-	Kube 			   *kube.K8sClient
+	Kube 			   *kube.Kube
 	Db 				   redisdb.Database
 	Ticker5			   *time.Ticker
 	LogTicker		   *time.Ticker
+	WriteLogTicker     *time.Ticker
 	Ticker15		   *time.Ticker
 	Ticker30		   *time.Ticker
 	Ticker60		   *time.Ticker
@@ -48,6 +50,7 @@ type Controller struct {
 	BackupKey		   string
 	NameMap            *JobsNameMap     
 	RunnerCmdPath      string
+	KubeConfig        *kube.InitArgs
 }
 
 func NewController() *Controller {
@@ -56,16 +59,33 @@ func NewController() *Controller {
 	redisAddr := redis1 + ":" + redisPort
 	angelina := myutils.GetOsEnv("ANGELINA_SERVER")
 	db := redisdb.NewRedisDB("tcp",redisAddr)
-	k8s := kube.NewK8sClient(redisAddr)
+	rdata,err := ioutil.ReadFile("/root/angelina-runner-pod.yml")
+	if err != nil {
+		myutils.Print("Error","read deployment template file failed,reason:" + err.Error(),true)
+	}
+	
+	init := &kube.InitArgs {
+		ApiServer: myutils.GetOsEnv("KUBER_APISERVER"),
+		ControllerEntry: myutils.GetOsEnv("ANGELINA_CONTROLLER_ENTRY"),
+		Namespace: myutils.GetOsEnv("NAMESPACE"),
+		StartCmd: myutils.GetOsEnv("START_CMD"),
+		DeploymentTemp: string(rdata),
+		QuotaName: myutils.GetOsEnv("ANGELINA_QUOTA"),
+		GlusterfsEndpoint: myutils.GetOsEnv("GLUSTERFS_ENDPOINT"),
+		GlusterfsDataVolume: myutils.GetOsEnv("GLUSTERFS_DATA_VOLUME"),
+		GlusterfsReferVolume: myutils.GetOsEnv("GLUSTERFS_REFER_VOLUME")}
+	k8s := kube.NewKube(init)
 	return &Controller {
 		Kube: k8s,
 		Db: db,
+		KubeConfig: init,
 		Ticker5: time.NewTicker(5 * time.Second),
 		Ticker10: time.NewTicker(10 * time.Second),
 		Ticker15: time.NewTicker(15 * time.Second),
 		Ticker30: time.NewTicker(30 * time.Second),
 		Ticker60: time.NewTicker(60 * time.Second),
 		LogTicker: time.NewTicker(10 * time.Second),
+		WriteLogTicker: time.NewTicker(30 * time.Second),
 		WaitingRunJobs: myutils.NewSet(),
 		StartingJobs: myutils.NewSet(),
 		Service: angelina,

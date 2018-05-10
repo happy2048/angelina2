@@ -100,10 +100,13 @@ func (sr *StepRun) SendTickerFunc() {
 }
 func (sr *StepRun) SendStatus() {
 	if sr.Status == "finished" && sr.OutputStatus != "ready" {
+		sr.SocketSendMessage(sr.CreateMsg(sr.OutputStatus))
+		/*
 		status := sr.SocketSendMessage(sr.CreateMsg(sr.OutputStatus))
 		if status == true {
 			sr.StopSendSignal <- true
 		}
+		*/
 	}
 }
 func (sr *StepRun) SocketSendMessage(info string) bool {

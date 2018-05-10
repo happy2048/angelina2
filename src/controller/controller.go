@@ -115,7 +115,7 @@ func (ctrl *Controller) CreateJob(job string) {
 	ctrl.AppendLogToQueue("Info","remove the job",job,"from WaitingRunJobs succeed")
 	ctrl.StartingJobs.Add(job)
 	ctrl.AppendLogToQueue("Info","add the job",job,"to StartingJobs succeed")
-	myjob,err := NewJob(ctrl.RedisAddr,job,ctrl.FinishedSignal)
+	myjob,err := NewJob(ctrl.RedisAddr,job,ctrl.FinishedSignal,ctrl.KubeConfig)
 	if err != nil {
 		ctrl.AppendLogToQueue("Error","job",job,"create failed,reason:",err.Error())
 		tdata := &SimpleJob{
@@ -151,6 +151,16 @@ func (ctrl *Controller) RoundHandleRunnerData() {
 			continue
 		}
 		if ctrl.JobsPool.Contain(data.Prefix) == false {
+			delete := false
+			name := ctrl.NameMap.Read(data.Prefix)
+			if name == "" {
+				delete  = true
+			}else if ctrl.RunningJobs.Contains(name) == false && ctrl.DeletingJobs.Contains(name) == false{
+					delete = true
+			}
+			if delete {
+				ctrl.Kube.DeleteDeployment(data.DeployId)
+			}
 			continue
 		}
 		job := ctrl.JobsPool.Read(data.Prefix)
@@ -366,4 +376,15 @@ FinishedJobs:      %s`
 	finished := strings.Join(ctrl.FinishedJobs.Names(),",")
 	fmt.Printf(info + "\n",wait,start,run,deleting,waitDelete,finished)
 	fmt.Println("******************************************************************************************")
+}
+func (ctrl *Controller) WriteLogs() {
+	for _,name := range  ctrl.RunningJobs.Members() {
+		prefix := myutils.GetSamplePrefix(name)
+		 if ctrl.JobsPool.Contain(prefix) {
+			job := ctrl.JobsPool.Read(prefix)
+			if job != nil {
+				go job.WriteLogs()
+			}
+		}
+	}
 }

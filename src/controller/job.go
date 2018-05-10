@@ -16,14 +16,20 @@ import (
 	Start(): sample实例的启动函数
 */
 func (ct *Job) Start() {
+	ct.AppendLogToQueue("Info","my id is",ct.Prefix)
 	ct.Status = "running"
+	ct.AppendLogToQueue("Info","set my status with running")
     ct.DeleteErrorDeploy()
+	ct.AppendLogToQueue("Info","delete pre error pods finished.")
     ct.DeleteDebugFile()
+	ct.AppendLogToQueue("Info","delete debug file finished.")
 	ct.SetTemplate()
+	ct.AppendLogToQueue("Info","set template  finished.")
 	if !ct.ValidateStep() {
 		ct.Status = "failed"
 	}
     ct.CheckPreStatus()
+	ct.AppendLogToQueue("Info","check pre status finished.")
 	//ct.CheckIfFinished()
     //ct.StartStep()
 }
@@ -44,7 +50,7 @@ func (ct *Job) StartStep() {
 			for ind,_ := range ct.Steps.Read(step).SubSteps {
 				status := ct.CreateDeployment(step + "-" + IntToString(ind))
 				if status {
-					ct.AppendLogToQueue("Info","create deployment for ",hkey)
+					ct.AppendLogToQueue("Info","create deployment for",hkey)
 					ct.SetStepRunning(hkey)
 				}
 			}
@@ -63,6 +69,7 @@ func (ct *Job) SetStepRunning(subStep string) {
     ct.Steps.Read(step).SubSteps[index].Status = "running"
 	if ct.Steps.Read(step).Status == "ready"  {
 		ct.Steps.Read(step).Status = "running"
+		ct.AppendLogToQueue("Info","set subStep",subStep,"'s status with running")
 	}
 }
 func (ct *Job) ValidateStep() bool {
@@ -70,7 +77,7 @@ func (ct *Job) ValidateStep() bool {
 		if len(value.Presteps) != 0 {
 			for _,pre := range value.Presteps {
 				if !ct.Steps.Contains(pre)  {
-					ct.AppendLogToQueue("Error","prestep ","pre "," of ",key," is invalid.")
+					ct.AppendLogToQueue("Error","prestep","pre","of",key,"is invalid.")
 					return false
 				} 
 			}
@@ -131,6 +138,7 @@ func (ct *Job) CheckPreStatus() {
 		}
 		if succeed == len(ct.Steps.Read(step).SubSteps) {
 			ct.Steps.Read(step).Status = "succeed"
+			ct.AppendLogToQueue("Info","we have checked that step",step,"ran succeed,skip to run it again.")
 		}
 	
 	}
@@ -151,14 +159,17 @@ func (ct *Job) CheckIfFinished() {
 */
 func (ct *Job) DeleteErrorDeploy() {
 	sleep := false
+	deploys := make([]string,0,1000)
     for key,value := range ct.Steps.Members() {
 		for ind,_ := range value.SubSteps {
 			deployId := ct.GetDeployId(key + "-" + strconv.Itoa(ind))
 			if ct.Kube.DeploymentExist(deployId) != 1 {
-				_,err := ct.Kube.DeleteDeployment(deployId)
+				err := ct.Kube.DeleteDeployment(deployId)
 				if err != nil {
-					ct.AppendLogToQueue("Error","delete deployment ",deployId," error,reason: ",err.Error())
+					ct.AppendLogToQueue("Error","delete deployment",deployId,"error,reason:",err.Error())
+					deploys = append(deploys,deployId)
 				}else {
+					ct.AppendLogToQueue("Info","delete previous error deployment",deployId,"succeed")
 					sleep = true
 				}
 			}
@@ -167,21 +178,32 @@ func (ct *Job) DeleteErrorDeploy() {
 	if sleep == true {
 		time.Sleep(50 * time.Second)
 	}
-
+	for len(deploys) != 0 {
+		err := ct.Kube.DeleteDeployment(deploys[0])
+		if err != nil {
+			ct.AppendLogToQueue("Error","delete deployment",deploys[0],"error,reason:",err.Error())
+			time.Sleep(50 * time.Second)
+		}else {
+			deploys = deploys[1:]
+		}
+	}
 }
 
-func (ct *Job) DeleteDeployment(subStep string) {
+func (ct *Job) DeleteDeployment(subStep string) error  {
 	step := strings.Split(subStep,"-")[0]
     index := StringToInt(strings.Split(subStep,"-")[1])
 	deployId := ct.Steps.Read(step).SubSteps[index].DeployId
 	if ct.RunningDeployment.Contains(ct.Steps.Read(step).SubSteps[index].DeployId) == false {
-		return 
+		return nil
 	}
-	status,_ := ct.Kube.DeleteDeployment(deployId)
-	if status == true {
+	err := ct.Kube.DeleteDeployment(deployId)
+	if err == nil {
 		ct.RunningDeployment.Remove(deployId)
-		ct.AppendLogToQueue("Info","deployment ",deployId," has been deleted.")
+		ct.AppendLogToQueue("Info","deployment",deployId,"has been deleted.")
+	}else {
+		ct.AppendLogToQueue("Error",err.Error())
 	}
+	return err
 }
 // step like "step1-1"
 func (ct *Job) CreateDeployment(subStep string) bool{
@@ -195,14 +217,17 @@ func (ct *Job) CreateDeployment(subStep string) bool{
 		Container: ct.Steps.Read(step).Container,
 		Index: indexString,
 		DeployId: deployId,
+		Limits: ct.Steps.Read(step).ResourcesLimits,
+		Requests: ct.Steps.Read(step).ResourcesRequests,
 		Step: step}
-	status,_ := ct.Kube.CreateDeployment(deployArgs)
-	if status == true {
+	err:= ct.Kube.CreateDeployment(deployArgs)
+	if err == nil {
 		ct.Steps.Read(step).SubSteps[index].DeployId = deployId
 		ct.RunningDeployment.Add(deployId)
-		ct.AppendLogToQueue("Info","create new deployment ",deployId," for ",subStep)
+		ct.AppendLogToQueue("Info","create new deployment",deployId,"for",subStep)
 		return true
 	}else {
+		ct.AppendLogToQueue("Error","create deployment failed,reason:",err.Error())
 		return false
 	}
 }
@@ -211,16 +236,18 @@ func (ct *Job) CreateDeployment(subStep string) bool{
 */
 func (ct *Job) DeleteCons() {
 	// 执行容器删除
+	ct.AppendLogToQueue("Info","start to delete myself")
 	if ct.Status == "finished" {
 		return 
 	}
 	ct.FinishSignal <- ct.Prefix + ":" + "deleting"
+	ct.AppendLogToQueue("Info","send deleting message to controller")
 	members := ct.RunningDeployment.Members()
 	wait := false
   	if len(members) != 0 {
    		for _,val := range members {
-     		status,_ := ct.Kube.DeleteDeployment(val)
-        	if status {
+     		err := ct.Kube.DeleteDeployment(val)
+        	if err == nil {
            		ct.RunningDeployment.Remove(val)
 				wait = true	
             }
@@ -230,10 +257,13 @@ func (ct *Job) DeleteCons() {
 		time.Sleep(50 * time.Second)
 	}
 	ct.WriteStateFile()
+	ct.AppendLogToQueue("Info","write state file finished.")
 	ct.SendStepStatus(true)
-	ct.WriteLogs()
 	ct.SaveRunTime()
+	ct.AppendLogToQueue("Info","save new estimate time finished.")
 	ct.Status = "finished"
+	ct.AppendLogToQueue("Info","delete myself succeed.")
+	ct.WriteLogs()
 	ct.FinishSignal <- ct.Prefix + ":" + "deleted"
 }
 
@@ -261,13 +291,18 @@ func (ct *Job) AppendLogToQueue(level string,logStr ...string) {
     }
     mystr = mystr + "\n"
     ct.LogsQueue.PushToQueue(mystr)
-
 }
 
 /*
 	WriteLogs(): 将日志队列里的信息写入日志文件
 */
 func (ct *Job) WriteLogs() {
+	waitString := strings.Join(ct.WaitingRunningSteps.Members(),",")
+	ct.AppendLogToQueue("Info","waiting to run Sub Steps:",waitString)
+	runDeploy := strings.Join(ct.RunningDeployment.Members(),",")
+	ct.AppendLogToQueue("Info","current running pods:",runDeploy)
+	ct.Mu.Lock()
+	defer ct.Mu.Unlock()
     data := strings.Join(ct.LogsQueue.PopAllFromQueue(),"")
     logfile := path.Join(ct.BaseDir,ct.SampleName,"step0",".debug.log")
     var f *os.File
@@ -337,17 +372,19 @@ func (ct *Job) RcreateDeployment(step string,index int) {
 		deployArgs := &kube.CreateDeployArgs{
         Sample: ct.SampleName,
 		DeployId: deployId,
+		Limits: ct.Steps.Read(step).ResourcesLimits,
+		Requests: ct.Steps.Read(step).ResourcesRequests,
 		Index: IntToString(index),
         Container: ct.Steps.Read(step).Container,
         Step: step}
 		ct.RunningDeployment.Remove(tid)
 		time.Sleep(60 * time.Second)
 		if ct.Kube.DeploymentExist(tid) == kube.NotFound {
-       		status,_ := ct.Kube.CreateDeployment(deployArgs)
-			if status == true {
+       		err := ct.Kube.CreateDeployment(deployArgs)
+			if err == nil {
 		  		ct.Steps.Read(step).SubSteps[index].DeployId = deployId
                 ct.RunningDeployment.Add(deployId)
-            	ct.AppendLogToQueue("Info","deployment ",tid," status is invalid,we replace it by ",deployId)
+            	ct.AppendLogToQueue("Info","deployment",tid,"status is invalid,we recreate it")
 			}
 		}
 	}
@@ -377,10 +414,10 @@ func (ct *Job) SaveRunTime() {
 		pipeid := "pipeid" + myutils.GetSha256(strings.Trim(tdata," "))[:15]
 		tm,err := ct.Db.RedisHashGet(pipeid,"estimate-time")
 		if err != nil {
-			ct.AppendLogToQueue("Error","save estimate time first query error: " + err.Error())
+			ct.AppendLogToQueue("Error","save estimate time first query error:" + err.Error())
 			tm,err = ct.Db.RedisHashGet(tdata,"estimate-time")
 			if err != nil {
-				ct.AppendLogToQueue("Error","save estimate time second query error: " + err.Error())
+				ct.AppendLogToQueue("Error","save estimate time second query error:" + err.Error())
 				return
 			}
 			pipeid = tdata
@@ -397,14 +434,14 @@ func (ct *Job) SaveRunTime() {
 			if err1 != nil {
 				return 
 			}
-			ct.AppendLogToQueue("Info","update time sucessed,new estimate time is: ",strconv.FormatInt(nowUnix - startUnix,10))
+			ct.AppendLogToQueue("Info","update time sucessed,new estimate time is:",strconv.FormatInt(nowUnix - startUnix,10))
 		}else {
 			newTime := int64(float64(last) * 0.9 + 0.1 * float64(nowUnix - startUnix))
 			_,err := ct.Db.RedisHashSet(pipeid,"estimate-time",strconv.FormatInt(newTime,10))
 			if err != nil {
 				return 
 			}
-			ct.AppendLogToQueue("Info","update time sucessed,new estimate time is: ",strconv.FormatInt(newTime,10))
+			ct.AppendLogToQueue("Info","update time sucessed,new estimate time is:",strconv.FormatInt(newTime,10))
 		}
 	}
 
@@ -413,14 +450,14 @@ func (ct *Job) SaveRunTime() {
     HandleData(sample,deployId,subStep,status string): 处理消息的函数
 */
 func (ct *Job) HandleData(deployId,subStep,status string) {
-	ct.AppendLogToQueue("Info","get message: ", deployId," ",subStep," ",status)
+	ct.AppendLogToQueue("Info","get message:", deployId," ",subStep," ",status)
 	step := strings.Split(subStep,"-")[0]
 	indexString := strings.Split(subStep,"-")[1]
 	index := StringToInt(indexString)
 	if status == "alive" {
 		if ct.Steps.Contains(step) && ct.Steps.Read(step).SubSteps[index].Status == "running" && ct.Steps.Read(step).SubSteps[index].DeployId == deployId {
 			ct.Steps.Read(step).SubSteps[index].LastAliveTime = time.Now()
-			ct.AppendLogToQueue("Info","deployment ",deployId," of sample ",ct.SampleName," is keeping alive.")
+			ct.AppendLogToQueue("Info","deployment",deployId,"of sample",ct.SampleName,"is keeping alive.")
 			return 
 		}
 	}
@@ -432,18 +469,21 @@ func (ct *Job) HandleData(deployId,subStep,status string) {
 	}
 	for _,pre := range ct.Steps.Read(step).Presteps {
 		if ct.Steps.Read(pre).Status != "faild" && ct.Steps.Read(pre).Status != "succeed" {
-			ct.AppendLogToQueue("Info","get invalid step status of ",subStep)
+			ct.AppendLogToQueue("Info","get invalid step status of",subStep)
 			return 
 		}
 	}
+	err1 := ct.DeleteDeployment(subStep)
+	if err1 != nil {
+		return 
+	}
+	ct.WaitingRunningSteps.Remove(subStep)
 	ct.Steps.Read(step).SubSteps[index].Status = status 
-	ct.AppendLogToQueue("Info","set status for ",subStep)
+	ct.AppendLogToQueue("Info","set status for",subStep)
 	statusFile := path.Join(ct.BaseDir,ct.SampleName,step,".status")
 	ct.WriteStatusFile(statusFile,subStep + ":" + status)
 	runTime := myutils.GetRunTime(ct.Steps.Read(step).SubSteps[index].StepStartTime)
 	ct.Steps.Read(step).SubSteps[index].StepRunTime = runTime
-	ct.DeleteDeployment(subStep)
-	ct.WaitingRunningSteps.Remove(subStep)
 	count := ct.WaitingRunningSteps.Len()
 	if count == 0 {
 		ct.DeleteCons()
@@ -522,6 +562,13 @@ func (ct *Job) PickStepToRun() {
 				}
 			}
 			if succeed == len(presteps) {
+				request := make([]string,2,2)
+				copy(request, ct.Steps.Read(step).ResourcesRequests)
+				err := ct.Kube.GetQuotaResources(request[0],request[1])
+				if err != nil {
+					ct.AppendLogToQueue("Error",err.Error())
+					return 
+				}
 				status := ct.CreateDeployment(subStep)
 				if status {
 					ct.SetStepRunning(subStep)
@@ -532,6 +579,13 @@ func (ct *Job) PickStepToRun() {
 				ct.WaitingRunningSteps.Remove(subStep)
 			}
 		}else if len(presteps) == 0 && ct.Steps.Read(step).SubSteps[index].Status == "ready" {
+			request := make([]string,2,2)
+			copy(request, ct.Steps.Read(step).ResourcesRequests)
+			err := ct.Kube.GetQuotaResources(request[0],request[1])
+			if err != nil {
+				ct.AppendLogToQueue("Error",err.Error())
+				return 
+			}
 			status := ct.CreateDeployment(subStep)
 			if status {
             	ct.SetStepRunning(subStep)
@@ -545,6 +599,7 @@ func (ct *Job) PickStepToRun() {
 }
 
 func (ct *Job) HandleMessage(deployId,subStep,status string) {
+	ct.AppendLogToQueue("Info","get message:",deployId,"#",subStep,"#",status)
 	step := strings.Split(subStep,"-")[0]
 	indexString := strings.Split(subStep,"-")[1]
 	index := StringToInt(indexString)

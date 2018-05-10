@@ -15,6 +15,8 @@ func (ctrl *Controller) StatChangeChan() {
 func (ctrl *Controller) MyTickerFunc() {
 	for {
 		select {
+			case <- ctrl.WriteLogTicker.C:
+				ctrl.WriteLogs()
 			case <- ctrl.LogTicker.C:
 				ctrl.PrintInfo()
 			case  <- ctrl.Ticker5.C:

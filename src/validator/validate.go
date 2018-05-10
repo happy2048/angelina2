@@ -2,6 +2,7 @@ package validator
 import(
     "strings"
     "fmt"
+	"os"
 	"path"
     "strconv"
     "myutils"
@@ -11,7 +12,7 @@ import(
 )
 type Step struct {
     Command string `json:command`
-	TmpArgs []string  `json:"-"`
+	TmpArgs []string `json:"-"`
 	CommandName string `json:commandName`
     Args string `json:args`
     Container string `json:container`
@@ -19,11 +20,15 @@ type Step struct {
     SubArgs []string `json:subArgs`
 	CmdArray []string `json:"-"`
 	CommandCount string `json:commandCount`
+	ResourcesLimits []string `json:resourcesLimits`
+	ResourcesRequests []string `json:resourcesRequests`
 }
 type Validator struct {
 	Data map[string]gjson.Result
 	Refer map[string]string
 	Param map[string]string
+	ResourcesLimits map[string][]string
+	ResourcesRequests map[string][]string
 	Input []string
 	NormData map[string]*Step
 	BaseDir string
@@ -64,10 +69,12 @@ func NormStep(data string) (string,error) {
 }
 func (vd *Validator) StartValidate() {
 	vd.ValidateStepItem()
+	vd.ValidateResourcesValue()
 	vd.ValidateField()
 	vd.SetTmpStepValue()
 	vd.ValidatePreStep()
 	vd.ReplaceFlag()
+	vd.ValidateStepsSum()
 	vd.JoinCommand()
 }
 func (vd *Validator) WriteObjToFile(file string) {
@@ -85,6 +92,14 @@ func (vd *Validator) JoinCommand() {
 		vd.NormData[key].Command = cmd
 		vd.NormData[key].Args = tdata
 	}
+}
+func (vd *Validator) ValidateStepsSum() {
+	for i := 0;i < len(vd.NormData);i++ {
+		if _,ok := vd.NormData["step" + strconv.Itoa(i+1)]; !ok {
+			myutils.Print("Error","we checked that " + "step" + strconv.Itoa(i+1) + " not define,exit",true)
+		}
+	}
+
 }
 func (vd *Validator) ReplaceFlag() {
 	regRefer := regexp.MustCompile(`refer@[\w|-|_|\.|*]+\b`)
@@ -212,16 +227,66 @@ func (vd *Validator) ValidateField()  {
 	for key,value := range data {
 		cmdName := value.Get("command-name").String()
 		container := value.Get("container").String()
+		limit := make([]string,2,2)
+		request := make([]string,2,2)
 		if strings.Trim(container," ") == "" {
 			myutils.Print("Error","the field container of " + key + " is null",true)
 		}
 		if strings.Trim(cmdName," ") == "" {
 			myutils.Print("Error","the field command-name of " + key + " is null",true)
 		}
-		vd.NormData[key] = &Step{Container: container,CommandName: cmdName}
+		if value.Get("limit-type").Exists() {
+			ikey := value.Get("limit-type").String()
+			if _,ok := vd.ResourcesLimits[ikey];ok {
+				copy(limit,vd.ResourcesLimits[ikey])
+			}
+		}
+		if value.Get("request-type").Exists() {
+			ikey := value.Get("request-type").String()
+			if _,ok := vd.ResourcesRequests[ikey];ok {
+				copy(request,vd.ResourcesRequests[ikey])
+			}
+		}
+		if value.Get("limit").Exists() {
+			for k,t := range value.Get("limit").Array() {
+				limit[k] = t.String()
+			}		
+		}
+		if value.Get("request").Exists() {
+			for k,t := range value.Get("request").Array() {
+				request[k] = t.String()
+			}		
+		}
+		for i := 0 ;i < 2;i++ {
+			if i == 0 {
+				CheckResourceValue(limit[i],key,"m")	
+				CheckResourceValue(request[i],key,"m")	
+			}else {
+				CheckResourceValue(limit[i],key,"Mi")	
+				CheckResourceValue(request[i],key,"Mi")	
+			}
+		}
+		vd.NormData[key] = &Step{Container: container,CommandName: cmdName,ResourcesLimits: limit,ResourcesRequests: request}
 		
 	}
 	
+}
+func CheckResourceValue(item,step,unit string) {
+	if item == "" {
+		return
+	}
+	tdata := strings.Split(item,unit)
+	if len(tdata) == 2 && tdata[1] == ""  {
+		_,err := strconv.Atoi(tdata[0])
+		if err != nil {
+			fmt.Printf("invalid value %s of resources in %s,should like %s",item,step,"200" + unit)
+			os.Exit(3)
+		}else {
+			return 
+		}
+	}
+	fmt.Printf("invalid value %s of resources in %s,should like %s",item,step,"200" + unit)
+	os.Exit(3)
 }
 func ArrayToString(key string,value gjson.Result) []string {
 	redata := make([]string,len(value.Get(key).Array()))
@@ -230,6 +295,13 @@ func ArrayToString(key string,value gjson.Result) []string {
 		redata = append(redata,name.String())
 	}
 	return redata
+}
+func (vd *Validator) ValidateResourcesValue() {
+	for key,value := range vd.ResourcesLimits {
+		CheckResourceValue(value[0],key,"m")
+		CheckResourceValue(value[1],key,"Mi")
+	}
+
 }
 func (vd *Validator) ValidateStepItem() {
 	data := vd.Data
@@ -263,6 +335,8 @@ func NewValidator(data,referPath,dataPath string,params map[string]string) (*Val
 	inputData := make([]string,0,100)
 	rawData := make(map[string]gjson.Result)
 	normData := make(map[string]*Step)
+	limit := make(map[string][]string)
+	request := make(map[string][]string)
 	if ! gjson.Valid(data) {
 		return nil,fmt.Errorf("invalid pipeline file,parse failed,some commas are add in bad area or don't delete the annotation?")
 	}
@@ -304,12 +378,32 @@ func NewValidator(data,referPath,dataPath string,params map[string]string) (*Val
 			}
 			rawData[step] = value
 
+		}else if strings.Index(name,"resources-limits") == 0 {
+			tstr := make([]string,2,2)
+			if value.Get("cpu").Exists() {
+				tstr[0] = value.Get("cpu").String()
+			}
+			if value.Get("memory").Exists() {
+				tstr[1] = value.Get("memory").String()
+			}
+			limit[name] = tstr
+		}else if strings.Index(name,"resources-requests") == 0 {
+			tstr := make([]string,2,2)
+			if value.Get("cpu").Exists() {
+				tstr[0] = value.Get("cpu").String()
+			}
+			if value.Get("memory").Exists() {
+				tstr[1] = value.Get("memory").String()
+			}
+			request[name] = tstr
 		}
 		return true 
 	})
 	return &Validator{
 		NormData: normData,
 		Data: rawData,
+		ResourcesLimits: limit,
+		ResourcesRequests: request,
 		Refer: referData,
 		Param: params,
 		BaseDir: dataPath,

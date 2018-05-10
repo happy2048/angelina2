@@ -74,6 +74,7 @@ func (cc *Connector) CheckAndStorePipe(name,desc,con string) {
 		os.Exit(3)
 	}
 	va.StartValidate()
+	va.WriteObjToFile("/tmp/validate.json")
 	redisKey := "pipeline" + myutils.GetSha256("pipeline")[:20]
 	pipeid := "pipeid" + myutils.GetSha256(strings.Trim(name," "))[:15]
 	_,err = cc.Db.RedisSetAdd(redisKey,pipeid)

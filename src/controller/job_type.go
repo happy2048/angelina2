@@ -41,6 +41,8 @@ type Step struct {
     Status string  // 该step的状态，总共有四种类型: ready,running,succeed,failed
     Presteps []string  // 该step需要依赖的step
 	SubSteps []*SubStep
+	ResourcesLimits []string
+	ResourcesRequests []string
 }
 
 type StepSimple struct {
@@ -70,7 +72,7 @@ type Job struct {
 	// 向step发送命令以后，会把信息存放到这个map中，等待deployment发回确认信息
 	LogsQueue   *myutils.StringQueue 
 	// kubernetes配置信息
-	Kube *kube.K8sClient
+	Kube *kube.Kube
 	// redis数据库配置信息
 	Db redisdb.Database
 	Status string
@@ -80,7 +82,7 @@ type Job struct {
 	TemplateName string
 	Mu *sync.Mutex
 }
-func NewJob(redisAddr,sample string,fchan chan <- string) (*Job,error) {
+func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs) (*Job,error) {
 	var reErr error
 	jdata,err := ioutil.ReadFile(path.Join("/mnt/data",sample,"step0","pipeline.json"))
 	if err != nil {
@@ -88,7 +90,7 @@ func NewJob(redisAddr,sample string,fchan chan <- string) (*Job,error) {
 	}	
 	prefix := myutils.GetSamplePrefix(sample)
 	db := redisdb.NewRedisDB("tcp",redisAddr)
-	k8s := kube.NewK8sClient(redisAddr)
+	k8s := kube.NewKube(init)
 	runningDeploy := myutils.NewSet()
 	mytime := time.Now()
 	jsonObj := gjson.Parse(string(jdata))
@@ -105,8 +107,16 @@ func NewJob(redisAddr,sample string,fchan chan <- string) (*Job,error) {
 			commandName := value.Get("CommandName").String()
 			args := value.Get("Args").String()
 			cmd := command + " " + args
+			limits := make([]string,2,2)
+			requests := make([]string,2,2)
 			cmdArray := make([]string,0,len(value.Get("SubArgs").Array()) + 1)
 			subSteps := make([]*SubStep,0,len(value.Get("SubArgs").Array()) + 1)
+			for i,t := range value.Get("ResourcesLimits").Array() {
+				limits[i] = t.String()
+			}
+			for i,t := range value.Get("ResourcesRequests").Array() {
+				requests[i] = t.String()
+			}
 			for ind,sub := range value.Get("SubArgs").Array() {
 				cmdArray = append(cmdArray,cmd + " " + strings.Trim(sub.String()," "))
 				subStep := &SubStep {
@@ -148,6 +158,8 @@ func NewJob(redisAddr,sample string,fchan chan <- string) (*Job,error) {
 				Container: container,
 				Presteps: tpres,
 				Status: "ready",
+				ResourcesRequests: requests,
+				ResourcesLimits: limits,
 				SubSteps: subSteps}
 			steps.Write(ikey,tdata)
 			return true

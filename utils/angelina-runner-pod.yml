@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ANGELINA-RUNNER-NAME
+  namespace: ANGELINA-NAMESPACE
+  labels:
+    app: ANGELINA-RUNNER-NAME
+spec:
+  containers:
+  - name: ANGELINA-RUNNER-NAME
+    image: ANGELINA-RUNNER-IMAGE
+    command:
+    - ANGELINA-RUNNER-COMMAND
+    resources:
+      limits:
+        cpu: ANGELINA-RUNNER-LIMITS-CPU
+        memory: ANGELINA-RUNNER-LIMITS-MEMORY
+      requests:
+        cpu: ANGELINA-RUNNER-REQUESTS-CPU
+        memory: ANGELINA-RUNNER-REQUESTS-MEMORY
+    env:
+    - name: SAMPLE
+      value: "ANGELINA-RUNNER-JOB"
+    - name: DEPLOYMENTID
+      value: "ANGELINA-RUNNER-NAME"
+    - name: SERVICE
+      value: "ANGELINA-CONTROLLER-ENTRY"
+    - name: SCRIPTURL
+      value: "ANGELINA-RUNNER-SCRIPTURL"
+    - name: STEP
+      value: "ANGELINA-RUNNER-STEP"
+    - name: INDEX
+      value: "ANGELINA-RUNNER-INDEX"
+    - name: DATADIR
+      value: "ANGELINA-RUNNER-DATADIR"
+    - name: REFERDIR
+      value: "ANGELINA-RUNNER-REFERDIR"
+    volumeMounts:
+    - name: data
+      mountPath: /mnt/data
+    - name: refer
+      mountPath: /mnt/refer
+  volumes:
+  - name: data
+    glusterfs:
+      endpoints: ANGELINA-GLUSTERFS-ENDPOINT
+      path: ANGELINA-GLUSTERFS-DATA-VOLUME
+  - name: refer
+    glusterfs:
+      endpoints: ANGELINA-GLUSTERFS-ENDPOINT
+      path: ANGELINA-GLUSTERFS-REFER-VOLUME
+      readOnly: true

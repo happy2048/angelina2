@@ -259,43 +259,15 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 	-rwxr-xr-x 1 root root  5301877 May  3 20:38 angelina-runner
 	
  这三个文件就是angelina的组件，其中的angelina就是angelina client。
- 
-**8.进行angelina初始化**
 
-（1）初始化之前需要设置REDISADDR环境变量,我这里随便选择一个kuber-node1:31000
-
-	[root@kuber-master  angelina2]# echo "export REDISADDR=kuber-node1:31000" >> /root/.bashrc
-	[root@kuber-master  angelina2]# source  /root/.bashrc
-	
-（2）使用angelina  -g init 产生模板文件
-
-	[root@kuber-master angelina2]# ./bin/angelina -g init 
-	create init template file to /tmp/angelina.json
-
-（3）编辑产生的模板文件
-	
-	[root@kuber-master angelina2]#  cat /tmp/angelina.json
-	
-	{
-		"AuthFile": "/etc/kubernetes/admin.conf",  // kubernetes 认证文件路径，创建deployment时需要使用
-		"ReferVolume": "refer-volume",  // referVolume是我们刚才创建的refer-volume，存放参考文件的volume
-		"DataVolume" : "data-volume", // job使用的gluster volume，也就是我们刚才创建的data-volume
-		"GlusterEndpoints": "glusterfs-cluster",// 我们创建glusterfs endpoint时使用的名称
-		"Namespace": "bio-system", // 使用我们刚才创建的kubernetes namespace作为angelina专用namespace
-		"ScriptUrl": "", //设置该选项的意义在于，如果我们做了很多关于angelina-runner的容器，如果现在我需要更新angelina-runner，那么这些容器需要从新制作，设置这个url，所有的容器的angelina-runner在运行时从这下载，然后运行,如果为空，默认从angelina controller处下载angelina-runner。
-		"OutputBaseDir": "", // 在该物理机上glusterfs的data-volume挂载点，运行job所需的文件将会传到这下面。
-		"StartRunCmd": "rundoc.sh",  // 每一个angelina-runner的启动命令，每个angelina-runner的启动命令需要一样,制作容器时需要将该脚本传入容器当中，否则运行肯定会失败。
-		"ControllerServiceEntry": "angelina-controller:6300" // angelina-controler的访问端点，供angelina-runner使用，主要是对应后面创建的angelina controler的服务名称。
-	}
-（4）使用angelina -I 初始化 
-
-	[root@kuber-master angelina]# angelina -I /tmp/angelina.json
-
-**9.部署angelina controller**
+**8.部署angelina controller**
 
 （1）部署angelina controller所需的配置文件主要有config下的angelina-controller-deployment.yml，angelina-controller-service.yml，angelina-client-service.yml
 
-（2）angelina-controller-deployment.yml的内容如下,如果采用默认配置，该文件不需要做任何修改即可运行：
+（2）angelina-controller-deployment.yml的内容如下,如果采用默认配置，这个文件不能直接运行，需要修改的地方如下：
+
+	a.KUBER_APISERVER需要根据实际情况修改为kubernetes apiserver的监听地址。
+	b.如果你不需要每次启动时都重新拉取镜像，请删除“imagePullPolicy: Always”这一行，建议删除。
 
 	[root@kuber-master config]# cat angelina-controller-deployment.yml 
 	apiVersion: apps/v1beta1
@@ -317,7 +289,8 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 	    spec:
 	      containers:
 	      - name: angelina-controller
-	        image: happy365/angelina-controller:2.0
+	        image: happy365/angelina:2.0
+	        imagePullPolicy: Always
 	        env:
 	        - name: ANGELINA_REDIS_ADDR
 	          value: angelina-redis
@@ -325,6 +298,22 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 	          value: "6380"
 	        - name: ANGELINA_SERVER
 	          value: ":6300"
+	        - name: ANGELINA_CONTROLLER_ENTRY
+	          value: "angelina-controller:6300"
+	        - name: NAMESPACE
+	          value: "bio-system"
+	        - name: START_CMD
+	          value: "rundoc.sh"
+	        - name: GLUSTERFS_ENDPOINT
+	          value: "glusterfs-cluster"
+	        - name: GLUSTERFS_DATA_VOLUME
+	          value: "data-volume"
+	        - name: GLUSTERFS_REFER_VOLUME
+	          value: "refer-volume"
+	        - name: ANGELINA_QUOTA
+	          value: "compute-resources"
+	        - name: KUBER_APISERVER
+	          value: "https://10.61.0.160:6443"
 	        ports:
 	        - containerPort: 6300
 	          protocol: UDP
@@ -345,7 +334,7 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 	        glusterfs:
 	          endpoints: glusterfs-cluster
 	          path: refer-volume
-	          readOnly: true
+	          readOnly: true  
 
 （3）使用如下命令创建：
 
@@ -403,6 +392,32 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 
 	[root@kuber-master config]# echo "export ANGELINA=kuber-node1:32000" >> /root/.bashrc
 	[root@kuber-master config]# source /root/.bashrc
+
+**9.为bio-system命名空间设置资源配额**
+
+（1）计算资源配额对于高效利用集群资源具有重要的意义，但是如果配额设置得不好，集群资源无法充分利用。资源配置文件为angelina源码目录config目录下的compute-resources.yaml
+
+	[root@kuber-master config]# cat compute-resources.yaml 
+	apiVersion: v1
+	kind: ResourceQuota
+	metadata:
+	  name: compute-resources
+	  namespace: bio-system
+	spec:
+	  hard:
+	    pods: "20"
+	    requests.cpu: "4"
+	    requests.memory: 3000Mi
+说明：
+	
+	（1）pods: 表示该命名空间总共可以启动多少个容器，如果启动的容器数量超过这个数字，容器启动会失败
+	（2）requests.cpu：表示该命名空间总共可以用多少的requests cpu，在kubernetes集群中，每一个pod可以设置requests cpu，表要运行我这个容器，至少需要多少个cpu单位，由于一个cpu对于容器来说是很大的单位，所以kubernetes把每一个cpu分成1000份，写成1000m，假设我的容器需要0.5个cpu,可以写成500m。
+	（3）requests memory: 表示该命名空间总共可以使用多少 requests memory，单位Mi表示MB,Gi表示GB...。
+	（4）上面的requests.cpu: "4"表示可以使用4个cpu线程。
+
+（2）使用如下命令创建：
+
+	[root@kuber-master config]# kubectl apply -f compute-resources.yaml
 
 **10.制作angelina runner容器**
 
