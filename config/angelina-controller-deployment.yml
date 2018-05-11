@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: angelina-controller
-        image: registry.vega.com:5000/angelina3:1.0
+        image: happy365/angelina:2.0
         imagePullPolicy: Always
         env:
         - name: ANGELINA_REDIS_ADDR
