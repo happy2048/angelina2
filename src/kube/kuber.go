@@ -15,6 +15,7 @@ type ReadQuota struct {
 	LimitsMemory string `json:"limits.memory"`
 	RequestsCpu string `json:"requests.cpu"`
 	RequestsMemory string `json:"requests.memory"`
+	LimitPods string `json:"pods"`
 }
 type DeploymentStatus int
 const (
@@ -193,6 +194,17 @@ func TranMemUnit(item string) int64 {
 	}
 	return data
 }
+func TranPods(item string) int64 {
+	item = strings.Trim(item," ")
+	if item == "" {
+		return 0
+	}
+	data,err := strconv.ParseInt(item,10,64)
+	if err != nil {
+		return int64(-1)
+	}
+	return data
+}
 func TranCpuUnit(item string) int64 {
 	item = strings.Trim(item," ")
 	if item == "" {
@@ -227,6 +239,7 @@ func (k8s *Kube) GetQuotaResources(myCpus,myMems string) (error) {
 	url :=  strings.Trim(k8s.ApiServer,"/") + "/" + subUrl
 	totalCpus := int64(0)
 	totalMem := int64(0)
+	totalPods := int64(0)
 	reInfo := make(map[string]ReadQuota)
 	response,err := k8s.HttpOperate("GET",url,"",nil)
 	if err != nil {
@@ -263,8 +276,12 @@ func (k8s *Kube) GetQuotaResources(myCpus,myMems string) (error) {
 	if ok1 && ok2 {
 		totalCpus = TranCpuUnit(reInfo["hard"].RequestsCpu) - TranCpuUnit(reInfo["used"].RequestsCpu)
 		totalMem = TranMemUnit(reInfo["hard"].RequestsMemory) - TranMemUnit(reInfo["used"].RequestsMemory)
+		totalPods = TranPods(reInfo["hard"].LimitPods)  - TranPods(reInfo["used"].LimitPods)
 	}else {
 		return nil
+	}
+	if reInfo["hard"].LimitPods != "" && totalPods <= 0 {
+		return fmt.Errorf("no resource to allocate")
 	}
 	if TranMemUnit(reInfo["hard"].RequestsMemory) == 0 && TranCpuUnit(reInfo["hard"].RequestsCpu) == 0 {
 		return nil
