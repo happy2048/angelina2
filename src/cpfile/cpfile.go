@@ -59,7 +59,7 @@ func LocateName(srcDir,patten1,patten2 string) (string,string) {
 	}
 	dirs,err := ioutil.ReadDir(srcDir)
 	if err != nil {
-		myutils.Print("Error","read directory " +srcDir + "failed",true)
+		myutils.Print("Error","read directory " +srcDir + " failed",true)
 		
 	}
 	for _,info := range dirs {

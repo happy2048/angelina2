@@ -44,6 +44,7 @@ type Controller struct {
 	Ticker30		   *time.Ticker
 	Ticker60		   *time.Ticker
 	Ticker10		   *time.Ticker
+	HandleDataTicker   *time.Ticker
 	Service            string
 	RedisAddr          string
 	FinishedSignal     chan string
@@ -86,6 +87,7 @@ func NewController() *Controller {
 		Ticker60: time.NewTicker(60 * time.Second),
 		LogTicker: time.NewTicker(10 * time.Second),
 		WriteLogTicker: time.NewTicker(30 * time.Second),
+		HandleDataTicker: time.NewTicker(30 * time.Second),
 		WaitingRunJobs: myutils.NewSet(),
 		StartingJobs: myutils.NewSet(),
 		Service: angelina,

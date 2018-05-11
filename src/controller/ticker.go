@@ -24,7 +24,6 @@ func (ctrl *Controller) MyTickerFunc() {
 				ctrl.CheckNameMap()
 			case  <- ctrl.Ticker10.C:
 				ctrl.FlashJobStepStatus()
-				ctrl.RoundHandleRunnerData()
 			case <- ctrl.Ticker15.C:
 				ctrl.PickJobStepToRun()
 			case <- ctrl.Ticker30.C:
@@ -32,7 +31,9 @@ func (ctrl *Controller) MyTickerFunc() {
 				ctrl.BackupJobs()
 			case <- ctrl.Ticker60.C:
 				ctrl.DeleteExpirationJob()
-		
+			case <- ctrl.HandleDataTicker.C:
+				ctrl.RoundHandleRunnerData()
+			
 		}
 	
 	}

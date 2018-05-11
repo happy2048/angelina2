@@ -39,7 +39,7 @@ func NewStepRun() *StepRun{
 	service := myutils.GetOsEnv("SERVICE")
 	baseDir := "/mnt/data"
 	lgsq := myutils.NewStringQueue(1000)
-	stick := time.NewTicker(5 * time.Second)
+	stick := time.NewTicker(30 * time.Second)
 	logTicker := time.NewTicker(15 * time.Second)
 	aliveTicker := time.NewTicker(60 * time.Second)
 	return &StepRun{

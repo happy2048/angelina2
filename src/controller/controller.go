@@ -140,6 +140,7 @@ func (ctrl *Controller) CreateJob(job string) {
 }
 func (ctrl *Controller) RoundHandleRunnerData() {
 	members := ctrl.MessageQueue.PopAllFromQueue()
+	count := 0
 	for _,info := range members {
 		var data RunnerMessage
 		err := json.Unmarshal([]byte(info),&data)
@@ -181,6 +182,11 @@ func (ctrl *Controller) RoundHandleRunnerData() {
 			continue
 		}
 		go job.HandleData(data.DeployId,data.SubStep,data.Status)
+		if count % 10 == 0 {
+			time.Sleep(3 * time.Second)
+		}else {
+			count++
+		}
 	}
 
 }
