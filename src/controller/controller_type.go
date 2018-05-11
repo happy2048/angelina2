@@ -40,7 +40,7 @@ type Controller struct {
 	Ticker5			   *time.Ticker
 	LogTicker		   *time.Ticker
 	WriteLogTicker     *time.Ticker
-	Ticker15		   *time.Ticker
+	Ticker20		   *time.Ticker
 	Ticker30		   *time.Ticker
 	Ticker60		   *time.Ticker
 	Ticker10		   *time.Ticker
@@ -82,7 +82,7 @@ func NewController() *Controller {
 		KubeConfig: init,
 		Ticker5: time.NewTicker(5 * time.Second),
 		Ticker10: time.NewTicker(10 * time.Second),
-		Ticker15: time.NewTicker(15 * time.Second),
+		Ticker20: time.NewTicker(20 * time.Second),
 		Ticker30: time.NewTicker(30 * time.Second),
 		Ticker60: time.NewTicker(60 * time.Second),
 		LogTicker: time.NewTicker(10 * time.Second),

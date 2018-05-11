@@ -24,7 +24,7 @@ func (ctrl *Controller) MyTickerFunc() {
 				ctrl.CheckNameMap()
 			case  <- ctrl.Ticker10.C:
 				ctrl.FlashJobStepStatus()
-			case <- ctrl.Ticker15.C:
+			case <- ctrl.Ticker20.C:
 				ctrl.PickJobStepToRun()
 			case <- ctrl.Ticker30.C:
 				ctrl.CheckJobStepAlive()

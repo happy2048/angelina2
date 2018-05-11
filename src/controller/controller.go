@@ -29,7 +29,7 @@ func (ctrl *Controller) PickJobStepToRun() {
 		jobId := myutils.GetSamplePrefix(jobName)
 		job := ctrl.JobsPool.Read(jobId)
 		if job != nil {
-			go job.PickStepToRun()
+			job.PickStepToRun()
 		}else {
 			ctrl.AppendLogToQueue("Error","job",jobName,"is nil")
 		}
