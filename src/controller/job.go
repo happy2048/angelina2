@@ -182,6 +182,7 @@ func (ct *Job) DeleteErrorDeploy() {
 		err := ct.Kube.DeleteDeployment(deploys[0])
 		if err != nil {
 			ct.AppendLogToQueue("Error","delete deployment",deploys[0],"error,reason:",err.Error())
+			deploys = deploys[1:]
 			time.Sleep(50 * time.Second)
 		}else {
 			deploys = deploys[1:]
