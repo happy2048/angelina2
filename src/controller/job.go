@@ -157,6 +157,11 @@ func (ct *Job) CheckIfFinished() {
 /*
 	DeleteErrorDeploy(): 删除错误状态的deployment，这是可能是上次运行该sample失败留下的，在本次sample运行之前，需要删掉它
 */
+func (ct *Job) DeleteDeployWithLock(deploy string) error {
+	ct.DeleteLocker.Lock()
+	defer ct.DeleteLocker.Unlock()
+	return ct.Kube.DeleteDeployment(deploy)
+} 
 func (ct *Job) DeleteErrorDeploy() {
 	sleep := false
 	deploys := make([]string,0,1000)
@@ -164,7 +169,7 @@ func (ct *Job) DeleteErrorDeploy() {
 		for ind,_ := range value.SubSteps {
 			deployId := ct.GetDeployId(key + "-" + strconv.Itoa(ind))
 			if ct.Kube.DeploymentExist(deployId) != 1 {
-				err := ct.Kube.DeleteDeployment(deployId)
+				err := ct.DeleteDeployWithLock(deployId)
 				if err != nil {
 					ct.AppendLogToQueue("Error","delete deployment",deployId,"error,reason:",err.Error())
 					deploys = append(deploys,deployId)
@@ -179,7 +184,7 @@ func (ct *Job) DeleteErrorDeploy() {
 		time.Sleep(50 * time.Second)
 	}
 	for len(deploys) != 0 {
-		err := ct.Kube.DeleteDeployment(deploys[0])
+		err := ct.DeleteDeployWithLock(deploys[0])
 		if err != nil {
 			ct.AppendLogToQueue("Error","delete deployment",deploys[0],"error,reason:",err.Error())
 			deploys = deploys[1:]
@@ -197,7 +202,7 @@ func (ct *Job) DeleteDeployment(subStep string) error  {
 	if ct.RunningDeployment.Contains(ct.Steps.Read(step).SubSteps[index].DeployId) == false {
 		return nil
 	}
-	err := ct.Kube.DeleteDeployment(deployId)
+	err := ct.DeleteDeployWithLock(deployId)
 	if err == nil {
 		ct.RunningDeployment.Remove(deployId)
 		ct.AppendLogToQueue("Info","deployment",deployId,"has been deleted.")
@@ -247,7 +252,7 @@ func (ct *Job) DeleteCons() {
 	wait := false
   	if len(members) != 0 {
    		for _,val := range members {
-     		err := ct.Kube.DeleteDeployment(val)
+     		err := ct.DeleteDeployWithLock(val)
         	if err == nil {
            		ct.RunningDeployment.Remove(val)
 				wait = true	
@@ -367,7 +372,7 @@ func (ct *Job) RcreateDeployment(step string,index int) {
 	if dur > timeout {
 		ct.Steps.Read(step).SubSteps[index].LastAliveTime = time.Now()
 		tid := ct.Steps.Read(step).SubSteps[index].DeployId  
-        ct.Kube.DeleteDeployment(tid)
+        ct.DeleteDeployWithLock(tid)
 		subStep := step + "-" + IntToString(index)
 		deployId := ct.GetDeployId(subStep)
 		deployArgs := &kube.CreateDeployArgs{

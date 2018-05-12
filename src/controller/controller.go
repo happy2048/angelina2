@@ -115,7 +115,7 @@ func (ctrl *Controller) CreateJob(job string) {
 	ctrl.AppendLogToQueue("Info","remove the job",job,"from WaitingRunJobs succeed")
 	ctrl.StartingJobs.Add(job)
 	ctrl.AppendLogToQueue("Info","add the job",job,"to StartingJobs succeed")
-	myjob,err := NewJob(ctrl.RedisAddr,job,ctrl.FinishedSignal,ctrl.KubeConfig)
+	myjob,err := NewJob(ctrl.RedisAddr,job,ctrl.FinishedSignal,ctrl.KubeConfig,ctrl.DeleteLocker)
 	if err != nil {
 		ctrl.AppendLogToQueue("Error","job",job,"create failed,reason:",err.Error())
 		tdata := &SimpleJob{

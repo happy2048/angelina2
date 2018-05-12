@@ -52,6 +52,7 @@ type Controller struct {
 	NameMap            *JobsNameMap     
 	RunnerCmdPath      string
 	KubeConfig        *kube.InitArgs
+	DeleteLocker      *sync.Mutex
 }
 
 func NewController() *Controller {
@@ -100,6 +101,7 @@ func NewController() *Controller {
 		FinishedJobs: NewFinishJobsMap(),
 		WaitingDeleteJobs: myutils.NewSet(),
 		RedisAddr: redisAddr,
+		DeleteLocker: new(sync.Mutex),
 		BackupKey: "angelina-running-jobs",
 		FinishedSignal: make(chan string),
 		DeletingJobs: myutils.NewSet()}

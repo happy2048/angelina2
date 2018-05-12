@@ -81,8 +81,9 @@ type Job struct {
 	TemplateEstimate string
 	TemplateName string
 	Mu *sync.Mutex
+	DeleteLocker *sync.Mutex
 }
-func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs) (*Job,error) {
+func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs,del *sync.Mutex) (*Job,error) {
 	var reErr error
 	jdata,err := ioutil.ReadFile(path.Join("/mnt/data",sample,"step0","pipeline.json"))
 	if err != nil {
@@ -174,6 +175,7 @@ func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs) (*
 		Prefix: prefix,
 		Steps: steps,
 		Status: "",
+		DeleteLocker: del,
 		Mu: new(sync.Mutex),
 		StepStatus: "",
 		RunningDeployment: runningDeploy,
