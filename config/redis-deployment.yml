@@ -18,6 +18,13 @@ spec:
       containers:
       - name: angelina-redis
         image: redis:3.0
+        resources:
+          limits:
+            cpu: "0m"
+            memory: "0Mi"
+          requests:
+            cpu: "0m"
+            memory: "0Mi"
         command:
           - redis-server
           - "--appendonly"
