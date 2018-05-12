@@ -5,6 +5,6 @@ metadata:
   namespace: bio-system
 spec:
   hard:
-    pods: "20"
-    requests.cpu: "4"
-    requests.memory: 3000Mi
+    pods: "30"
+    requests.cpu: "7"
+    requests.memory: 9000Mi

@@ -19,6 +19,13 @@ spec:
       - name: angelina-controller
         image: happy365/angelina-controller:2.0
         imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "0m"
+            memory: "0Mi"
+          requests:
+            cpu: "0m"
+            memory: "0Mi"
         env:
         - name: ANGELINA_REDIS_ADDR
           value: angelina-redis
