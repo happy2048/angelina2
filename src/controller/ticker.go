@@ -59,7 +59,7 @@ func (ctrl *Controller) HandleSignal(data string) {
 				tdata := &SimpleJob{
 					Name: sample,
 					FinishedTime: time.Now(),
-					Status: "finished",
+					Status: value.Status,
 					Log: value.StepStatus}
 				ctrl.FinishedJobs.Add(info[0],tdata)			
 			}

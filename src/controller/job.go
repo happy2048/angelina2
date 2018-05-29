@@ -243,9 +243,10 @@ func (ct *Job) CreateDeployment(subStep string) bool{
 func (ct *Job) DeleteCons() {
 	// 执行容器删除
 	ct.AppendLogToQueue("Info","start to delete myself")
-	if ct.Status == "finished" {
+	if ct.Status == "succeed" || ct.Status == "failed" {
 		return 
 	}
+	ct.SetFinalStatus()
 	ct.FinishSignal <- ct.Prefix + ":" + "deleting"
 	ct.AppendLogToQueue("Info","send deleting message to controller")
 	members := ct.RunningDeployment.Members()
@@ -267,7 +268,6 @@ func (ct *Job) DeleteCons() {
 	ct.SendStepStatus(true)
 	ct.SaveRunTime()
 	ct.AppendLogToQueue("Info","save new estimate time finished.")
-	ct.Status = "finished"
 	ct.AppendLogToQueue("Info","delete myself succeed.")
 	ct.WriteLogs()
 	ct.FinishSignal <- ct.Prefix + ":" + "deleted"
@@ -395,6 +395,24 @@ func (ct *Job) RcreateDeployment(step string,index int) {
 		}
 	}
 
+}
+func (ct *Job) SetFinalStatus() {
+	succeed := 0
+    all := 0
+    for _,val := range ct.Steps.Members() {
+        for _,ival := range val.SubSteps {
+            all++
+            if ival.Status == "succeed" {
+                succeed++
+            }
+
+        }
+    }
+	if succeed == all {
+		ct.Status = "succeed"
+	}else {
+		ct.Status = "failed"
+	}
 }
 func (ct *Job) SaveRunTime() {
 	succeed := 0

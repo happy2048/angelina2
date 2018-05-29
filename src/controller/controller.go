@@ -229,7 +229,7 @@ func (ctrl *Controller) GetAllJobs() string {
 	}
 	for _,job := range ctrl.FinishedJobs.Members() {
 		if job != nil {
-			redata = append(redata,NormJobPrint(job.Name,"Finished"))
+			redata = append(redata,NormJobPrint(job.Name,job.Status))
 		}
 	}
 	redata = append(redata,headLine)
