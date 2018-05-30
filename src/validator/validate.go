@@ -229,10 +229,18 @@ func (vd *Validator) ValidateField()  {
 		container := value.Get("container").String()
 		limit := make([]string,2,2)
 		request := make([]string,2,2)
-		if strings.Trim(container," ") == "" {
+		container = strings.Trim(container," ")
+		if strings.Index(container,"[") == 0 {
+			myutils.Print("Error","the field container of " + key + " is invalid,it should a string rather than array",true)
+		}
+		if container == "" {
 			myutils.Print("Error","the field container of " + key + " is null",true)
 		}
-		if strings.Trim(cmdName," ") == "" {
+		cmdName = strings.Trim(cmdName," ")
+		if strings.Index(cmdName,"[") == 0 {
+			myutils.Print("Error","the field command-name of " + key + " is invalid,it should a string rather than array",true)
+		}
+		if cmdName == "" {
 			myutils.Print("Error","the field command-name of " + key + " is null",true)
 		}
 		if value.Get("limit-type").Exists() {

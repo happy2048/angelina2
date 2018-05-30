@@ -118,11 +118,18 @@ func (ct *Job) CheckPreStatus() {
 		succeed := 0
 		for _,sub := range status {
 			sub = strings.Trim(sub,"\n")
-			stat := strings.Split(sub,":")[1]
+			var stat string
+			if len(strings.Split(sub,":")) != 2 {
+				continue
+			}
+			stat = strings.Split(sub,":")[1]
 			if stat != "succeed" {
 				continue
 			}
 			mystep := strings.Split(sub,":")[0]
+			if len(strings.Split(mystep,"-")) != 2 {
+				continue
+			}
 			tstep := strings.Split(mystep,"-")[0]
 			if tstep != step  {
 				continue
