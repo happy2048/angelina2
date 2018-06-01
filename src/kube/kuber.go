@@ -40,6 +40,7 @@ type InitArgs struct {
 	ControllerEntry string
 	DeploymentTemp  string
 	Namespace string
+	RedisAddr string
 	StartCmd string
 	QuotaName string
 	GlusterfsEndpoint string
@@ -49,6 +50,7 @@ type InitArgs struct {
 type Kube struct {
 	ApiServer string
 	Protocol  string
+	RedisAddr string
 	GlusterfsEndpoint string
 	GlusterfsDataVolume string
 	GlusterfsReferVolume string
@@ -67,6 +69,7 @@ func NewKube(init *InitArgs) *Kube {
 		StartCmd: init.StartCmd,
 		Namespace: init.Namespace,
 		QuotaName: init.QuotaName,
+		RedisAddr: init.RedisAddr,
 		GlusterfsEndpoint: init.GlusterfsEndpoint,
 		GlusterfsDataVolume: init.GlusterfsDataVolume,
 		GlusterfsReferVolume: init.GlusterfsReferVolume,
@@ -79,6 +82,7 @@ func (k8s *Kube) CreateDeployment(cda *CreateDeployArgs) error {
 	tdata = strings.Replace(tdata,"ANGELINA-NAMESPACE",k8s.Namespace,-1)
 	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-IMAGE",cda.Container,-1)
 	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-COMMAND",k8s.StartCmd,-1)
+	tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REDIS",k8s.RedisAddr,-1)
 	if cda.Requests[0] == "" {
 		tdata = strings.Replace(tdata,"ANGELINA-RUNNER-REQUESTS-CPU","0m",-1)
 	}else {

@@ -53,6 +53,8 @@ type Controller struct {
 	RunnerCmdPath      string
 	KubeConfig        *kube.InitArgs
 	DeleteLocker      *sync.Mutex
+	Recovery           bool
+	RecoveryMap       *myutils.Set
 }
 
 func NewController() *Controller {
@@ -72,6 +74,7 @@ func NewController() *Controller {
 		Namespace: myutils.GetOsEnv("NAMESPACE"),
 		StartCmd: myutils.GetOsEnv("START_CMD"),
 		DeploymentTemp: string(rdata),
+		RedisAddr: redisAddr,
 		QuotaName: myutils.GetOsEnv("ANGELINA_QUOTA"),
 		GlusterfsEndpoint: myutils.GetOsEnv("GLUSTERFS_ENDPOINT"),
 		GlusterfsDataVolume: myutils.GetOsEnv("GLUSTERFS_DATA_VOLUME"),
@@ -81,6 +84,8 @@ func NewController() *Controller {
 		Kube: k8s,
 		Db: db,
 		KubeConfig: init,
+		Recovery: true,
+		RecoveryMap: myutils.NewSet(),
 		Ticker5: time.NewTicker(5 * time.Second),
 		Ticker10: time.NewTicker(10 * time.Second),
 		Ticker20: time.NewTicker(20 * time.Second),

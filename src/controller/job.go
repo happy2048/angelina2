@@ -15,7 +15,7 @@ import (
 /*
 	Start(): sample实例的启动函数
 */
-func (ct *Job) Start() {
+func (ct *Job) Start() (error){
 	ct.AppendLogToQueue("Info","my id is",ct.Prefix)
 	ct.Status = "running"
 	ct.AppendLogToQueue("Info","set my status with running")
@@ -27,11 +27,16 @@ func (ct *Job) Start() {
 	ct.AppendLogToQueue("Info","set template  finished.")
 	if !ct.ValidateStep() {
 		ct.Status = "failed"
+		ct.StepStatus = "valid job steps failed."
+		ct.WriteStepStatus = false
 	}
     ct.CheckPreStatus()
 	ct.AppendLogToQueue("Info","check pre status finished.")
-	//ct.CheckIfFinished()
-    //ct.StartStep()
+	if ct.Status == "failed" {
+		ct.Status = "running"
+		return fmt.Errorf("%s",ct.StepStatus)
+	}
+	return nil
 }
 func (ct *Job) GetDeployId(step string) string {
 	return "deploy" + myutils.GetSha256(ct.SampleName + step)[0:9]
@@ -93,10 +98,16 @@ func (ct *Job) CheckPreStatus() {
 	// step like "step1,step2..."
 	for i := 1;i < ct.Steps.Len() + 1;i++ {
 		step := "step" + strconv.Itoa(i)
+		if ct.Steps.Contains(step) == false {
+			ct.Status = "failed"
+			ct.StepStatus = "invalid " + step + " in job " + ct.SampleName
+			ct.WriteStepStatus = false
+			return
+		}
 		presteps := ct.Steps.Read(step).Presteps
 		isSucceed := true
 		for _,pre := range presteps {
-			if ct.Steps.Read(pre).Status == "ready" {
+			if ct.Steps.Read(pre).Status == "ready" || ct.Steps.Read(pre).Status == "running" {
 				isSucceed = false
 				break
 			}  
@@ -175,6 +186,14 @@ func (ct *Job) DeleteErrorDeploy() {
     for key,value := range ct.Steps.Members() {
 		for ind,_ := range value.SubSteps {
 			deployId := ct.GetDeployId(key + "-" + strconv.Itoa(ind))
+			recoveryKey := ct.Prefix + "-***-" + deployId + "-***-" + key + "-" + strconv.Itoa(ind) + "-***-" + "registry"
+			if ct.RecoveryMap.Contains(recoveryKey) {
+				ct.RunningDeployment.Add(deployId)
+				ct.Steps.Read(key).SubSteps[ind].DeployId = deployId
+				ct.SetStepRunning(key + "-" + strconv.Itoa(ind))
+				ct.RecoveryMap.Remove(recoveryKey)
+				continue
+			}
 			if ct.Kube.DeploymentExist(deployId) != 1 {
 				err := ct.DeleteDeployWithLock(deployId)
 				if err != nil {
@@ -646,6 +665,9 @@ func (ct *Job) HandleMessage(deployId,subStep,status string) {
 	ct.HandleData(deployId,subStep,status)
 }
 func (ct *Job) SendStepStatus(writeFile bool) {
+	if ct.WriteStepStatus == false {
+		return 
+	}
 	status := ct.GetStepStatusString()
     ct.StepStatus = status
 	if writeFile {

@@ -11,6 +11,7 @@ import(
 	"os"
 	"io"
 	"net"
+	"redisdb"
 	"os/exec"
 )
 type StepRun struct {
@@ -21,6 +22,7 @@ type StepRun struct {
 	Command   string
 	Status    string
 	Service   string
+	Db redisdb.Database
 	SendTicker  *time.Ticker
 	OutputStatus string
 	DeployId string
@@ -32,6 +34,8 @@ type StepRun struct {
 }
 func NewStepRun() *StepRun{
 	sample := myutils.GetOsEnv("SAMPLE")
+	redisAddr := myutils.GetOsEnv("ANGELINA_REDIS")
+	db := redisdb.NewRedisDB("tcp",redisAddr)
 	prefix := myutils.GetSamplePrefix(sample)
 	deployId := myutils.GetOsEnv("DEPLOYMENTID")
 	step := myutils.GetOsEnv("STEP")
@@ -48,6 +52,7 @@ func NewStepRun() *StepRun{
 		Step: step,
 		Index: index,
 		Command: "",
+		Db: db,
 		OutputStatus: "ready",
 		Service: service,
 		Status: "running",
@@ -68,8 +73,14 @@ func (sr *StepRun) StartRun() {
 		sr.SetOutputStatus("succeed")
 	}
 	go sr.SendTickerFunc()
+	go sr.Db.RedisSubscribe("AngelinaRecoveryChan",sr.RegistryMe)
 	sr.SendAliveTickerFunc()
 }
+func (sr *StepRun) RegistryMe(data string) {
+	if data == "WhoAlive" {
+		sr.SocketSendMessage(sr.CreateMsg("registry"))
+	}
+} 
 func (sr *StepRun) SetOutputStatus(status string) {
 	sr.OutputStatus = status
 	sr.Status = "finished"

@@ -6,6 +6,7 @@ import (
 	"redisdb"
 	"myutils"
 	"strings"
+	"strconv"
 	gjson "github.com/tidwall/gjson"
 	"io/ioutil"
 )
@@ -29,29 +30,29 @@ type Connector struct {
 
 type EditorOptions struct {
 	//Init   string `short:"I" long:"init" description:"Angelina configure file,the content of the file will be stored in the redis,and \n use -g option will generate an angelina template configure file."`
-	PushTemp  string `short:"s" long:"store" description:"Give a pipeline template file,and store it to redis."`
-	DisplayTemp  bool `short:"l" long:"list" description:"List the pipelines which have already existed."`
-	DeleteTemp   string `short:"D" long:"delete" description:"Delete the pipeline." default:""`
-	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job" default:""`
-	Job          string `short:"j" long:"job" description:"Given the job id or job name,get the job status." default:""`
-	AllJobStatus bool    `short:"J" long:"jobs" description:"Get  all jobs status"`
-	Persist      bool `short:"k" long:"keeping" description:"Get the job status(or all jobs status) all the time,must along with -j or -J."`
-	QueryTemp  string  `short:"q" long:"query" description:"give the pipeline id or pipeline name to get it's content." default:""`
-	Gener   string  `short:"g" long:"generate" description:"Three value(\"conf\",\"pipe\") can be given,\"pipe\" is to generate a pipeline \n template file and you can edit it and use -s to store the pipeline;\"conf\" is to \n generate running configure file and you can edit it and use -c option to run the \n sample" default:""`
+	PushTemp  string `short:"s" long:"store" description:"Give a pipeline template file,and store it to redis.\n"`
+	DisplayTemp  bool `short:"l" long:"list" description:"List the pipelines which have already existed.\n"`
+	DeleteTemp   string `short:"D" long:"delete" description:"Delete the pipeline.\n" default:""`
+	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job.\n" default:""`
+	Job          string `short:"j" long:"job" description:"Given the job id or job name,get the job status.\n" default:""`
+	AllJobStatus bool    `short:"J" long:"jobs" description:"Get  all jobs status.\n"`
+	Persist      bool `short:"k" long:"keeping" description:"Get the job status(or all jobs status) all the time,must along with -j or -J.\n"`
+	QueryTemp  string  `short:"q" long:"query" description:"give the pipeline id or pipeline name to get it's content.\n" default:""`
+	Gener   string  `short:"g" long:"generate" description:"Two value(\"conf\",\"pipe\") can be given,\"pipe\" is to generate a pipeline template file \n \n and you can edit it and use -s to store the pipeline,you can give value like \"pipe:10\" \n\n which \"10\" is represented total 10 steps;\"conf\" is to generate running configure file \n\n and you can edit it and use -c option to run the sample." default:""`
 }
 
 type Options struct {
-	Version bool `short:"v" long:"version" description:"software version."`
-	Force bool `short:"f" long:"force" description:"force to run all step of the sample,ignore they are succeed or failed last time."`
-	Sample string `short:"n" long:"name" description:"Sample name." default:"no name" default:""`
-	InputDir string `short:"i" long:"input" description:"Input directory,which includes some files  that are important to run the sample." default:""` 
-	OutPutDir string `short:"o" long:"output" description:"Output directory,which is a glusterfs mount point,so that copy files to glusterfs." default:""`
-	Template  string `short:"t" long:"template" description:"Pipeline template name,the sample will be running by the pipeline template." default:""`
-	TmpTemp   string `short:"T" long:"tmp" description:"A temporary pipeline template file,defines the running steps,the sample will be \n running by it,can't be used with -t." default:""`
-	Env   []string `short:"e" long:"env" description:"Pass variable to the pipeline template such as TEST=\"test\",this option can be \n used many time,eg: -e TEST=\"test1\" -e NAME=\"test\"."`
-	Conf  string `short:"c" long:"config" description:"configure file,which include the values of -f -n -i -o -t."`
-	Controller string `short:"a" long:"angelina" description:"Angelina Controller address like ip:port,if you don't set this option,you must set the System Environment Variable ANGELINA." default:""`
-	Redis string `short:"r" long:"redis" description:"Redis server address,can't use localhost:6379 and 127.0.0.1:6379,because they can't \n be accessed by containers,give another address;if the -r option don't give,you must \n set the System Environment Variable REDISADDR." default:""`
+	Version bool `short:"v" long:"version" description:"software version.\n"`
+	Force bool `short:"f" long:"force" description:"force to run all step of the sample,ignore they are succeed or failed last time.\n"`
+	Sample string `short:"n" long:"name" description:"Sample name.\n" default:""`
+	InputDir string `short:"i" long:"input" description:"Input directory,which includes some files  that are important to run the sample.\n" default:""` 
+	OutPutDir string `short:"o" long:"output" description:"Output directory,which is a glusterfs mount point,so that copy files to glusterfs.\n" default:""`
+	Template  string `short:"t" long:"template" description:"Pipeline template name,the sample will be running by the pipeline template.\n" default:""`
+	TmpTemp   string `short:"T" long:"tmp" description:"A temporary pipeline template file,defines the running steps,the sample will be \n\n running by it,can't be used with -t.\n" default:""`
+	Env   []string `short:"e" long:"env" description:"Pass variable to the pipeline template such as TEST=\"test\",this option can be \n\n used many time,eg: -e TEST=\"test1\" -e NAME=\"test\".\n"`
+	Conf  string `short:"c" long:"config" description:"configure file,which include the values of -f -n -i -o -t.\n"`
+	Controller string `short:"a" long:"angelina" description:"Angelina Controller address like ip:port,if you don't set this option,you must set \n\n the System Environment Variable ANGELINA.\n" default:""`
+	Redis string `short:"r" long:"redis" description:"Redis server address,can't use localhost:6379 and 127.0.0.1:6379,because they can't \n\n be accessed by containers,give another address;if the -r option don't give,you must \n\n set the System Environment Variable REDISADDR.\n" default:""`
 	Editor EditorOptions `group:"Other Options"`
 
 }
@@ -391,11 +392,35 @@ func (opt *Options) GenerateTemp() {
 			}else if strings.Trim(val," ") == "conf" {
 				ioutil.WriteFile("/tmp/config.json",[]byte(ConfigTemplate),0644)
 				fmt.Println("create configure template file to /tmp/config.json")
-			}else if strings.Trim(val," ") == "pipe" {
-				ioutil.WriteFile("/tmp/pipeline.json",[]byte(PipelineTemplate),0644)
+			}else if strings.Index(strings.Trim(val," "),"pipe") == 0 {
+				pstr := strings.Trim(val," ")
+				tstr := strings.Split(pstr,":")
+				var leng int 
+				if tstr[0] != "pipe" {
+					fmt.Printf("invalid value: %s,you can give value like \"pipe\" or \"pipe:10\"\n",val)
+					os.Exit(3)
+				}
+				if len(tstr) == 1 {
+					leng = 1
+				}else {
+					le,err := strconv.Atoi(tstr[1])
+					if err != nil {
+						fmt.Printf("invalid value: %s,you can give value like \"pipe\" or \"pipe:10\"\n",val)
+						os.Exit(3)
+					}
+					leng = le
+					
+				}
+				var temp string
+				for i := 1;i < leng;i++ {
+					temp = temp + fmt.Sprintf(StepTemp,"step" + strconv.Itoa(i),",")
+				}
+				temp = temp + fmt.Sprintf(StepTemp,"step" + strconv.Itoa(leng),"")
+				temp = fmt.Sprintf(PipelineTemplate,temp)
+				ioutil.WriteFile("/tmp/pipeline.json",[]byte(temp),0644)
         		fmt.Println("create pipeline template file to /tmp/pipeline.json")
 			}else {
-				fmt.Printf("invalid value: %s,you can give value from \"conf\" or \"pipe\" or \"init\"\n",val)
+				fmt.Printf("invalid value: %s,you can give value from \"conf\" or \"pipe\"\n",val)
 				os.Exit(3)
 			}
 		}

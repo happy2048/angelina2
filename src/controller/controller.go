@@ -18,10 +18,13 @@ type BackJobs struct {
 	Starting []string `json:"starting"`
 }
 func (ctrl *Controller) Start() {
+	go ctrl.ListenSocketService()
+	ctrl.CheckWhoAlive()
+	ctrl.HandleRecoveryData()
+	go ctrl.DeleteRecoveryKey()
 	ctrl.RecoveryJobs()
 	go ctrl.MyTickerFunc()
 	go ctrl.StatChangeChan()
-	go ctrl.ListenSocketService()
 	ctrl.HttpServer()
 }
 func (ctrl *Controller) PickJobStepToRun() {
@@ -115,7 +118,7 @@ func (ctrl *Controller) CreateJob(job string) {
 	ctrl.AppendLogToQueue("Info","remove the job",job,"from WaitingRunJobs succeed")
 	ctrl.StartingJobs.Add(job)
 	ctrl.AppendLogToQueue("Info","add the job",job,"to StartingJobs succeed")
-	myjob,err := NewJob(ctrl.RedisAddr,job,ctrl.FinishedSignal,ctrl.KubeConfig,ctrl.DeleteLocker)
+	myjob,err := NewJob(ctrl.RedisAddr,job,ctrl.FinishedSignal,ctrl.KubeConfig,ctrl.DeleteLocker,ctrl.RecoveryMap)
 	if err != nil {
 		ctrl.AppendLogToQueue("Error","job",job,"create failed,reason:",err.Error())
 		tdata := &SimpleJob{
@@ -129,7 +132,14 @@ func (ctrl *Controller) CreateJob(job string) {
 		ctrl.AppendLogToQueue("Info","add the job",job,"to FinishedJobs succeed")
 		return
 	}
-	myjob.Start()
+	err1 := myjob.Start()
+	if err1 != nil {
+		ctrl.JobsPool.Write(myutils.GetSamplePrefix(job),myjob)
+		ctrl.StartingJobs.Remove(job)
+		ctrl.RunningJobs.Add(job)
+		myjob.DeleteCons()
+		return 
+	}
 	ctrl.AppendLogToQueue("Info","job",job,"is starting")
 	ctrl.JobsPool.Write(myutils.GetSamplePrefix(job),myjob)
 	ctrl.AppendLogToQueue("Info","job",job,"add to JobsPool succeed")
@@ -137,6 +147,25 @@ func (ctrl *Controller) CreateJob(job string) {
 	ctrl.AppendLogToQueue("Info","job",job,"remove from StartingJobs succeed")
 	ctrl.RunningJobs.Add(job)
 	ctrl.AppendLogToQueue("Info","job",job,"add to RunningJobs succeed")
+}
+func (ctrl *Controller) HandleRecoveryData() {
+	members := ctrl.MessageQueue.PopAllFromQueue()
+	for _,info := range members {
+		var data RunnerMessage
+		err := json.Unmarshal([]byte(info),&data)
+		if err != nil {
+			ctrl.AppendLogToQueue("Error","json parse messge",info,"failed,reason:",err.Error())
+			continue
+		}
+		if data.Prefix == "" || data.DeployId == "" || data.SubStep == "" || data.Status == "" {
+			continue
+		}
+		if data.Status != "registry" {
+			continue
+		}
+		key := data.Prefix + "-***-" + data.DeployId + "-***-" + data.SubStep + "-***-" + data.Status
+		ctrl.RecoveryMap.Add(key)
+	}
 }
 func (ctrl *Controller) RoundHandleRunnerData() {
 	members := ctrl.MessageQueue.PopAllFromQueue()
@@ -254,6 +283,19 @@ func (ctrl *Controller) BackupJobs() {
 		return 
 	}
 	ctrl.Db.RedisStringSetWithEx(ctrl.BackupKey,string(rest),86400)
+}
+func (ctrl *Controller) CheckWhoAlive() {
+	for i := 0;i < 3;i++ {
+		ctrl.Db.RedisPublish("AngelinaRecoveryChan","WhoAlive")
+		time.Sleep(6 * time.Second)
+	}
+}
+func (ctrl *Controller) DeleteRecoveryKey() {
+	time.Sleep(60 * time.Second)
+	for _,key := range ctrl.RecoveryMap.Members() {
+		ctrl.RecoveryMap.Remove(key)
+	}
+
 }
 func (ctrl *Controller) RecoveryJobs() {
 	var back BackJobs

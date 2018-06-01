@@ -1,43 +1,59 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: angelina-controller-debug
+  name: angelina-controller
   namespace: bio-system
   labels:
-    app: angelina-controller-debug
+    app: angelina-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-       app: angelina-controller-debug
+       app: angelina-controller
   template:
     metadata:
       labels:
-        app: angelina-controller-debug
+        app: angelina-controller
     spec:
-      hostname: "goenv"
       containers:
-      - name: angelina-controller-debug
-        image: registry.vega.com:5000/step:1.0
+      - name: angelina-controller
+        image: happy365/angelina-controller-debug:2.0
         imagePullPolicy: Always
-        securityContext:
-          privileged: true
+        resources:
+          limits:
+            cpu: "0m"
+            memory: "0Mi"
+          requests:
+            cpu: "0m"
+            memory: "0Mi"
         env:
-        - name: REDIS_ADDR
+        - name: ANGELINA_REDIS_ADDR
           value: angelina-redis
-        - name: REDIS_PORT
+        - name: ANGELINA_REDIS_PORT
           value: "6380"
         - name: ANGELINA_SERVER
           value: ":6300"
-        - name: GOPATH
-          value: "/mnt/code/gopath"
+        - name: ANGELINA_CONTROLLER_ENTRY
+          value: "angelina-controller:6300"
+        - name: NAMESPACE
+          value: "bio-system"
+        - name: START_CMD
+          value: "rundoc.sh"
+        - name: GLUSTERFS_ENDPOINT
+          value: "glusterfs-cluster"
+        - name: GLUSTERFS_DATA_VOLUME
+          value: "data-volume"
+        - name: GLUSTERFS_REFER_VOLUME
+          value: "refer-volume"
+        - name: ANGELINA_QUOTA
+          value: "compute-resources"
+        - name: KUBER_APISERVER
+          value: "https://10.61.0.160:6443"
         ports:
         - containerPort: 6300
           protocol: UDP
         - containerPort: 6300
           protocol: TCP
-        - containerPort: 22
-          protocol: TCP 
         volumeMounts:
         - name: data
           mountPath: /mnt/data

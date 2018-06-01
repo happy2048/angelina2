@@ -19,6 +19,8 @@ spec:
         cpu: ANGELINA-RUNNER-REQUESTS-CPU
         memory: ANGELINA-RUNNER-REQUESTS-MEMORY
     env:
+    - name: ANGELINA_REDIS
+      value: "ANGELINA-RUNNER-REDIS"
     - name: SAMPLE
       value: "ANGELINA-RUNNER-JOB"
     - name: DEPLOYMENTID

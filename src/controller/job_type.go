@@ -56,6 +56,7 @@ type SendStepsInfo map[string]*StepSimple
 
 type Job struct {
 	// sample 名称
+	RecoveryMap *myutils.Set
 	SampleName string
 	// sample经过hash编码的sample前缀,这个前缀也是作为向客户端传递step信息的redis key
 	Prefix string
@@ -82,8 +83,9 @@ type Job struct {
 	TemplateName string
 	Mu *sync.Mutex
 	DeleteLocker *sync.Mutex
+	WriteStepStatus   bool
 }
-func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs,del *sync.Mutex) (*Job,error) {
+func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs,del *sync.Mutex,recovery *myutils.Set) (*Job,error) {
 	var reErr error
 	jdata,err := ioutil.ReadFile(path.Join("/mnt/data",sample,"step0","pipeline.json"))
 	if err != nil {
@@ -175,9 +177,11 @@ func NewJob(redisAddr,sample string,fchan chan <- string,init *kube.InitArgs,del
 		Prefix: prefix,
 		Steps: steps,
 		Status: "",
+		WriteStepStatus: true,
 		DeleteLocker: del,
 		Mu: new(sync.Mutex),
 		StepStatus: "",
+		RecoveryMap: recovery,
 		RunningDeployment: runningDeploy,
 		WaitingRunningSteps: waitSteps,
 		BaseDir: "/mnt/data",

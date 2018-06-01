@@ -17,7 +17,7 @@ var ConfigTemplate = `{
 	"glusterfs-entry-directory": "",
 	"sample-name": "",
 	"redis-address":"",
-	"template-env": ["",""],
+	"template-env": [],
 	"pipeline-template-name": "",
 	"force-to-cover": "no"
 }`
@@ -30,31 +30,29 @@ var PipelineTemplate = `{
 			"": "",
 			"": ""
 		},
-		"input": ["",""],
+		"input": [],
 		"params": {
 			"": "",
 			"": ""
 		},
-		"step1": {
-        	"pre-steps": ["",""],
-        	"container": "",
-			"command-name": "",
-        	"command": ["",""],
-        	"args":["",""],
-        	"sub-args": [""]
+		"resources-requests-1": {
+			"cpu": "0m",
+        	"memory":"0Mi"
 		},
-		"step2": {
-        	"pre-steps": ["",""],
-        	"container": "",
-			"command-name": "",
-        	"command": ["",""],
-        	"args":["",""],
-        	"sub-args": [""]
-		}
+%s
 	}
 }`
 
-
+var StepTemp = `		"%s": {
+        	"pre-steps": [],
+        	"container": "",
+			"command-name": "",
+        	"command": [],
+        	"args":[],
+        	"sub-args": [],
+			"request-type": ""
+		}%s
+`
 
 
 

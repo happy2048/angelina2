@@ -97,7 +97,14 @@ func (cc *Connector) CheckAndStorePipe(name,desc,con string) {
 		fmt.Printf("Error: store pipeline template file failed,reason: %s\n",err.Error())
 		os.Exit(3)
 	}
-	_,err = cc.Db.RedisHashSet(pipeid,"estimate-time","0")
+	tm,_ := cc.Db.RedisHashGet(pipeid,"estimate-time")
+	var storeTime string
+	if tm != "" && tm != "0" {
+		storeTime = tm
+	}else {
+		storeTime = "0"
+	}
+	_,err = cc.Db.RedisHashSet(pipeid,"estimate-time",storeTime)
 	if err != nil {
 		fmt.Printf("Error: store pipeline template file failed,reason: %s\n",err.Error())
 		os.Exit(3)
