@@ -50,7 +50,7 @@ spec:
         - name: KUBER_APISERVER
           value: "https://10.61.0.160:6443"
         - name: SMTP_ENABLED
-          value: "true"
+          value: "false"
         - name: SMTP_SERVER
           value: ""
         - name: SMTP_SERVER_PORT
