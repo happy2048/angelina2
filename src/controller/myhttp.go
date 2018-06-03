@@ -74,12 +74,12 @@ func (ctrl *Controller) HandleRequests(w http.ResponseWriter,req *http.Request) 
 				name = job
 			}
 			ctrl.WaitingDeleteJobs.Add(name)
-			ReturnValue(w,1000,"","job received")
+			ReturnValue(w,1000,"",name + " will be deleted.")
 			return 
 		}  
 		if req.Method == "GET" && req.Form["operate"][0] == "create" {
-			ReturnValue(w,1000,"","job received")
 			name := strings.Trim(req.Form["job"][0]," ")
+			ReturnValue(w,1000,"",name + " has received.")
 			id := myutils.GetSamplePrefix(name)
 			ctrl.NameMap.Add(id,name)
 			ctrl.AppendLogToQueue("Info","get message to create job ",name)

@@ -30,7 +30,7 @@ type StepRun struct {
 	LogsQueue *myutils.StringQueue
 	LogTicker *time.Ticker
 	AliveTicker *time.Ticker
-	StopSendSignal chan bool
+	SendRegistrySignal chan bool
 }
 func NewStepRun() *StepRun{
 	sample := myutils.GetOsEnv("SAMPLE")
@@ -60,7 +60,7 @@ func NewStepRun() *StepRun{
 		DeployId: deployId,
 		SendTicker: stick,
 		LogsQueue: lgsq,
-		StopSendSignal: make(chan bool),
+		SendRegistrySignal: make(chan bool),
 		LogTicker: logTicker,
 		AliveTicker: aliveTicker}
 }
@@ -73,12 +73,22 @@ func (sr *StepRun) StartRun() {
 		sr.SetOutputStatus("succeed")
 	}
 	go sr.SendTickerFunc()
-	go sr.Db.RedisSubscribe("AngelinaRecoveryChan",sr.RegistryMe)
-	sr.SendAliveTickerFunc()
+	go sr.SendAliveTickerFunc()
+	sr.Db.RedisSubscribe("AngelinaRecoveryChan",sr.RegistryMe)
 }
 func (sr *StepRun) RegistryMe(data string) {
 	if data == "WhoAlive" {
-		sr.SocketSendMessage(sr.CreateMsg("registry"))
+		sr.SendRegistrySignal <- true
+	}
+}
+func (sr *StepRun) SendRegistryMsg() {
+	sr.AppendLogToQueue("Info","receive registry message is WhoAlive")
+	status := sr.SocketSendMessage(sr.CreateMsg("registry"))
+	if status == false {
+		sr.AppendLogToQueue("Error","send registry message failed.")
+			
+	}else {
+		sr.AppendLogToQueue("Info","send registry message succeed.")
 	}
 } 
 func (sr *StepRun) SetOutputStatus(status string) {
@@ -99,50 +109,46 @@ func (sr *StepRun) SendAliveTickerFunc() {
 		}
 	}
 }
+
 func (sr *StepRun) SendTickerFunc() {
 	for {
 		select {
 			case <- sr.SendTicker.C:
 				sr.SendStatus()
-			case <- sr.StopSendSignal:
-				return 
+			case <- sr.SendRegistrySignal:
+				sr.SendRegistryMsg() 
 		}
 	}
 }
 func (sr *StepRun) SendStatus() {
 	if sr.Status == "finished" && sr.OutputStatus != "ready" {
 		sr.SocketSendMessage(sr.CreateMsg(sr.OutputStatus))
-		/*
-		status := sr.SocketSendMessage(sr.CreateMsg(sr.OutputStatus))
-		if status == true {
-			sr.StopSendSignal <- true
-		}
-		*/
 	}
 }
 func (sr *StepRun) SocketSendMessage(info string) bool {
 	udpAddr,err := net.ResolveUDPAddr("udp4",sr.Service)
 	if err != nil {
-		myutils.Print("Error","resolve udp socket failed,reason: " + err.Error(),false)
+		sr.AppendLogToQueue("Error","resolve udp socket failed,reason: ",err.Error())
 		return false
 	}
 	conn,err := net.DialUDP("udp",nil,udpAddr)
 	if err != nil {
-		myutils.Print("Error","dial udp failed,reason: " + err.Error(),false)
+		sr.AppendLogToQueue("Error","dial udp failed,reason: ",err.Error())
 		return false
 	}
 	_,err = conn.Write([]byte(info))
 	if err != nil {
-		myutils.Print("Error","write udp data failed,reason: " + err.Error(),false)
+		sr.AppendLogToQueue("Error","write udp data failed,reason: ",err.Error())
 		return false
 	}
 	var buf [512]byte
 	n,err := conn.Read(buf[0:])
 	if err != nil {
-		myutils.Print("Error","read buffer failed from udp,reason: " + err.Error(),false)
+		sr.AppendLogToQueue("Error","read buffer failed from udp,reason: ",err.Error())
 		return false
 	}
 	if string(buf[0:n]) != "received" {
+		sr.AppendLogToQueue("Error","read received message is not received ")
 		return false
 	}
 	return true

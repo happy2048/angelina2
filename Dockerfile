@@ -1,13 +1,22 @@
-FROM centos:7.3.1611
-ENV BaseUrl https://github.com/happy2048/angelina2/blob/master
-RUN yum install epel-release -y
-RUN yum install wget git -y
+FROM ubuntu:xenial 
+ENV BaseUrl http://files.happy366.cn/files/docker/angelina2
+ENV AngelinaUrl https://github.com/happy2048/angelina2.git
+RUN apt-get update 
+RUN apt-get install wget git tzdata -y
 EXPOSE 6300
-RUN wget -c  $BaseUrl/bin/angelina-controller -O /usr/bin/angelina-controller  && \
-	wget -c $BaseUrl/bin/angelina-runner   -O /root/angelina-runner && \
-	wget -c $BaseUrl/utils/redis-cli   -O /usr/bin/redis-cli  && \
-	wget -c $BaseUrl/utils/socket_client -O /usr/bin/socket_client
-RUN chmod +x /usr/bin/angelina-controller && \
+RUN cd /opt && \
+	git clone https://github.com/happy2048/angelina2.git && \
+	cd angelina2 && \
+	cp bin/angelina-runner /root/angelina-runner && \
+	cp bin/angelina-controller /usr/bin/angelina-controller && \
+	cp utils/redis-cli /usr/bin/redis-cli && \
+	cp utils/socket_client /usr/bin/socket_client && \
+	cp utils/angelina-runner-pod.yml /root/angelina-runner-pod.yml && \
+	chmod +x /usr/bin/angelina-controller && \
 	chmod +x /usr/bin/redis-cli && \
-	chmod +x /usr/bin/socket_client
+	chmod +x /usr/bin/socket_client && \
+	rm -rf /etc/localtime && \
+	ln -sv /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+	dpkg-reconfigure -f noninteractive tzdata  && \
+	rm -rf /opt/angelina2  
 ENTRYPOINT ["angelina-controller"]

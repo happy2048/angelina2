@@ -4,6 +4,7 @@ import(
 	"encoding/json"
 	"fmt"
 	"time"
+	"gopkg.in/gomail.v2"
 	"strings"
 )
 type RunnerMessage struct {
@@ -19,13 +20,16 @@ type BackJobs struct {
 }
 func (ctrl *Controller) Start() {
 	go ctrl.ListenSocketService()
+	go ctrl.HttpServer()
+	go ctrl.RecoveryJobs()
+	go ctrl.RecoverySendEmailJobs()
+	time.Sleep(20 * time.Second)
 	ctrl.CheckWhoAlive()
 	ctrl.HandleRecoveryData()
 	go ctrl.DeleteRecoveryKey()
-	ctrl.RecoveryJobs()
 	go ctrl.MyTickerFunc()
-	go ctrl.StatChangeChan()
-	ctrl.HttpServer()
+	go ctrl.TickerSendEmail()
+	ctrl.StatChangeChan()
 }
 func (ctrl *Controller) PickJobStepToRun() {
 	for _,jobName := range ctrl.RunningJobs.Members() {
@@ -130,6 +134,9 @@ func (ctrl *Controller) CreateJob(job string) {
 		ctrl.AppendLogToQueue("Info","remove the job",job,"from StartingJobs succeed")
 		ctrl.FinishedJobs.Add(myutils.GetSamplePrefix(job),tdata)
 		ctrl.AppendLogToQueue("Info","add the job",job,"to FinishedJobs succeed")
+		if ctrl.SmtpEnabled == true {
+			ctrl.SendMailJobs.Add(job + "-*-" + "failed")
+		}
 		return
 	}
 	err1 := myjob.Start()
@@ -287,7 +294,7 @@ func (ctrl *Controller) BackupJobs() {
 func (ctrl *Controller) CheckWhoAlive() {
 	for i := 0;i < 3;i++ {
 		ctrl.Db.RedisPublish("AngelinaRecoveryChan","WhoAlive")
-		time.Sleep(6 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 func (ctrl *Controller) DeleteRecoveryKey() {
@@ -404,7 +411,7 @@ func (ctrl *Controller) AppendLogToQueue(level string,logStr ...string) {
 }
 func (ctrl *Controller) PrintInfo() {
 	members := ctrl.LogsQueue.PopAllFromQueue()
-	fmt.Println("******************************************************************************************")
+	fmt.Println("***************************************start**********************************************")
 	for _,data := range members {
 		fmt.Println(data)
 		time.Sleep(200 * time.Millisecond)
@@ -423,7 +430,7 @@ FinishedJobs:      %s`
 	waitDelete := strings.Join(ctrl.WaitingDeleteJobs.Members(),",")
 	finished := strings.Join(ctrl.FinishedJobs.Names(),",")
 	fmt.Printf(info + "\n",wait,start,run,deleting,waitDelete,finished)
-	fmt.Println("******************************************************************************************")
+	fmt.Println("*****************************************end**********************************************")
 }
 func (ctrl *Controller) WriteLogs() {
 	for _,name := range  ctrl.RunningJobs.Members() {
@@ -433,6 +440,89 @@ func (ctrl *Controller) WriteLogs() {
 			if job != nil {
 				go job.WriteLogs()
 			}
+		}
+	}
+}
+func (ctrl *Controller) SendEmail(content string) (error) {
+    m := gomail.NewMessage()
+    m.SetHeader("From", ctrl.SendEmailInfo.User)
+    m.SetHeader("To",ctrl.SendEmailInfo.To...)
+    m.SetAddressHeader("Cc",ctrl.SendEmailInfo.User,ctrl.SendEmailInfo.User)
+    m.SetHeader("Subject", "Angelina Job Runing Status")
+    m.SetBody("text/html", content)
+    d := gomail.NewDialer(ctrl.SendEmailInfo.SmtpServer,ctrl.SendEmailInfo.Port,ctrl.SendEmailInfo.User, ctrl.SendEmailInfo.Passwd)
+    return d.DialAndSend(m)
+}
+func (ctrl *Controller) SendAllJobEmailInfo(members []string) {
+	if len(members) == 0 {
+		return 
+	}
+	tableTemp := `<table><tr><th>JobName</th><th>JobStatus</th></tr>%s</table>`
+	lineTemp := `<tr><td>%s</td><td>%s</td></tr>`
+	tmpstr := make([]string,0,len(members))
+    nameMap := make(map[string]bool)
+	for _,job := range members {
+		infos := strings.Split(job,"-*-") 
+		if len(infos) != 2 {
+			nameMap[job] = true
+			ctrl.SendMailJobs.Remove(job)
+			continue
+		}
+		name := infos[0]
+		status := infos[1]
+		tmpstr = append(tmpstr,fmt.Sprintf(lineTemp,name,status))
+		ctrl.SendMailJobs.Remove(job)
+	}
+	data := fmt.Sprintf(tableTemp,strings.Join(tmpstr,""))
+	err := ctrl.SendEmail(data)
+	if err != nil {
+		ctrl.AppendLogToQueue("Error","send email failed,reason: ",err.Error())
+		for _,job := range members {
+			if _,ok := nameMap[job]; ok {
+				continue
+			}
+			ctrl.SendMailJobs.Add(job)
+		}
+	}
+}
+func (ctrl *Controller) SendJobsEmail() {
+	members := ctrl.SendMailJobs.Members()
+	ctrl.SendAllJobEmailInfo(members)
+}
+func (ctrl *Controller) BackupWaitSendEmailJobs() {
+	if ctrl.SmtpEnabled == false {
+		return 
+	}
+	members := ctrl.SendMailJobs.Members() 
+	if len(members) == 0 {
+		return 
+	}
+	data := strings.Join(members,"-**-")
+	_,err := ctrl.Db.RedisStringSetWithEx("AngelinaWaitSendEmail",data,86400)
+	if err != nil {
+		ctrl.AppendLogToQueue("Error","backup waitSendEmailJob failed,reason: ",err.Error())
+	}
+
+}
+func (ctrl *Controller) RecoverySendEmailJobs() {
+	if ctrl.SmtpEnabled == false {
+		return 
+	}
+	info,err := ctrl.Db.RedisStringGet("AngelinaWaitSendEmail")
+	if err != nil {
+		return 
+	}
+	data := strings.Split(info,"-**-")
+	ctrl.SendAllJobEmailInfo(data)
+}
+func (ctrl *Controller) TickerSendEmail() {
+	if ctrl.SmtpEnabled == false {
+		return 
+	}
+	for {
+		select {
+			case <- ctrl.SendEmailTicker.C:
+				ctrl.SendJobsEmail()
 		}
 	}
 }

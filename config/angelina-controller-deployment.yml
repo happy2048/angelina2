@@ -49,6 +49,20 @@ spec:
           value: "compute-resources"
         - name: KUBER_APISERVER
           value: "https://10.61.0.160:6443"
+        - name: SMTP_ENABLED
+          value: "true"
+        - name: SMTP_SERVER
+          value: ""
+        - name: SMTP_SERVER_PORT
+          value: ""
+        - name: EMAIL_TO
+          value: ""
+        - name: EMAIL_SMTP_USER
+          value: ""
+        - name: EMAIL_SMTP_PASS
+          value: ""
+        - name: EMAIL_SEND_INTERVAL
+          value: "30"
         ports:
         - containerPort: 6300
           protocol: UDP

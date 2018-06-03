@@ -4,6 +4,7 @@ import(
 	"fmt"
 	"os"
 	"time"
+	"myutils"
 	"strings"
 	"io/ioutil"
 	"encoding/json"
@@ -35,7 +36,6 @@ func (cc *Connector) DeleteJob(job string) {
 	url := `http://%s/job?job=%s&operate=delete`
 	url = fmt.Sprintf(url,host,job)
 	redata,err := Operate("POST",url)
-	fmt.Println(redata)
 	if err != nil {
 		fmt.Printf("delete job %s failed,reason: %s\n",job,err.Error())
 		os.Exit(3)
@@ -49,7 +49,7 @@ func (cc *Connector) DeleteJob(job string) {
 			os.Exit(3)
 		}
 		data.Data = strings.Replace(data.Data,"-***-","\n",-1)
-		fmt.Println(data.Data)
+		myutils.Print("Info",data.Msg,false)
 		os.Exit(0)	
 	}
 }

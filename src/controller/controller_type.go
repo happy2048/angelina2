@@ -3,10 +3,19 @@ import(
 	"kube"
 	"myutils"
 	"redisdb"
+	"strings"
+	"strconv"
 	"sync"
 	"time"
 	"io/ioutil"
 )
+type SendEmailMessage struct {
+    To    []string
+    SmtpServer string
+    Port   int
+    User   string
+    Passwd string
+}
 type SimpleJob struct {
 	Name string
 	FinishedTime time.Time
@@ -31,6 +40,7 @@ type Controller struct {
 	RunningJobs        *myutils.Set
 	WaitingDeleteJobs  *myutils.Set
 	DeletingJobs       *myutils.Set
+	SendMailJobs       *myutils.Set    
 	FinishedJobs       *FinishJobsMap
 	JobsPool		   *JobsMap
 	MessageQueue       *myutils.StringQueue
@@ -55,6 +65,9 @@ type Controller struct {
 	DeleteLocker      *sync.Mutex
 	Recovery           bool
 	RecoveryMap       *myutils.Set
+	SendEmailInfo     SendEmailMessage
+	SmtpEnabled       bool
+	SendEmailTicker   *time.Ticker
 }
 
 func NewController() *Controller {
@@ -67,7 +80,33 @@ func NewController() *Controller {
 	if err != nil {
 		myutils.Print("Error","read deployment template file failed,reason:" + err.Error(),true)
 	}
+	smtpOk := myutils.GetOsEnv("SMTP_ENABLED")
+	var smtpSend bool
+	if strings.Trim(smtpOk," ") != "true" {
+		smtpSend = false
+	}else {
+		smtpSend = true
+	}
+	smtpServer := myutils.GetOsEnv("SMTP_SERVER")
+	smtpServerPort := myutils.GetOsEnv("SMTP_SERVER_PORT")
+	smtpEmailTo  := myutils.GetOsEnv("EMAIL_TO")
+	smtpUser := myutils.GetOsEnv("EMAIL_SMTP_USER")
+	smtpPass := myutils.GetOsEnv("EMAIL_SMTP_PASS")
+	if smtpServer == "" || smtpServerPort == "" || smtpEmailTo == "" || smtpUser == "" || smtpPass == "" {
+		smtpSend = false
+	}
+	p,err := strconv.Atoi(strings.Trim(smtpServerPort," "))
+	if err != nil {
+		smtpSend = false
+		p = 0
+	}
 	
+	emailInfo := SendEmailMessage {To:strings.Split(smtpEmailTo,","),SmtpServer: strings.Trim(smtpServer," "),Port: p,User: strings.Trim(smtpUser," "),Passwd: strings.Trim(smtpPass," ")} 
+	sendEmailInt := myutils.GetOsEnv("EMAIL_SEND_INTERVAL")
+	sendEmailInter,err := strconv.Atoi(strings.Trim(sendEmailInt," "))
+	if err != nil {
+		sendEmailInter = 30
+	}
 	init := &kube.InitArgs {
 		ApiServer: myutils.GetOsEnv("KUBER_APISERVER"),
 		ControllerEntry: myutils.GetOsEnv("ANGELINA_CONTROLLER_ENTRY"),
@@ -80,9 +119,10 @@ func NewController() *Controller {
 		GlusterfsDataVolume: myutils.GetOsEnv("GLUSTERFS_DATA_VOLUME"),
 		GlusterfsReferVolume: myutils.GetOsEnv("GLUSTERFS_REFER_VOLUME")}
 	k8s := kube.NewKube(init)
-	return &Controller {
+	contr:=  &Controller {
 		Kube: k8s,
 		Db: db,
+		SmtpEnabled: smtpSend,
 		KubeConfig: init,
 		Recovery: true,
 		RecoveryMap: myutils.NewSet(),
@@ -110,6 +150,12 @@ func NewController() *Controller {
 		BackupKey: "angelina-running-jobs",
 		FinishedSignal: make(chan string),
 		DeletingJobs: myutils.NewSet()}
+	if smtpSend == true {
+		contr.SendEmailTicker = time.NewTicker(time.Duration(sendEmailInter * 60) * time.Second)
+		contr.SendEmailInfo = emailInfo
+		contr.SendMailJobs = myutils.NewSet()
+	}
+	return contr
 }
 func NewJobsMap() *JobsMap {
 	return &JobsMap {

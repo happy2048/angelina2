@@ -8,6 +8,7 @@ import (
 	"time"
 	"kube"
 	"io"
+	"version"
 	"myutils"
 	"path"
 	"io/ioutil"
@@ -213,8 +214,10 @@ func (ct *Job) DeleteErrorDeploy() {
 		err := ct.DeleteDeployWithLock(deploys[0])
 		if err != nil {
 			ct.AppendLogToQueue("Error","delete deployment",deploys[0],"error,reason:",err.Error())
-			deploys = deploys[1:]
 			time.Sleep(50 * time.Second)
+		}
+		if len(deploys) == 1 {
+			break
 		}else {
 			deploys = deploys[1:]
 		}
@@ -711,7 +714,7 @@ func (ct *Job) GetStepStatusString() string{
 	header := `                                                      Running  Status                                             
 *******************************************************************************************************************************
 Software          Name: angelina
-Software       Version: v2.0
+Software       Version: %v
 Template          Name: %v
 Template Estimate Time: %v
 Running Sample    Name: %v
@@ -725,7 +728,7 @@ Already Running   Time: %v
 		count = count + len(val.SubSteps)
 	}
 	title := NormString("Date       Time",19) + "   " + NormLine("Step","Sub-Steps","Status","Deployment-Id","Run-Time","Pre-Steps","Command")
-	header = fmt.Sprintf(header,ct.TemplateName,ct.TemplateEstimate,ct.SampleName,myutils.GetRunTime(ct.StartTime),title)
+	header = fmt.Sprintf(header,version.Version,ct.TemplateName,ct.TemplateEstimate,ct.SampleName,myutils.GetRunTime(ct.StartTime),title)
 	store := make([]string,0,count)
 	store = append(store,header)
 	for i := 1;i < ct.Steps.Len() + 1;i++ {

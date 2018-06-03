@@ -3,6 +3,8 @@ import (
 	"fmt"
 	"github.com/jessevdk/go-flags"
 	"os"
+	"path"
+	"version"
 	"redisdb"
 	"myutils"
 	"strings"
@@ -20,6 +22,8 @@ type ReturnValue struct {
 	Force 			string
 	Input		 	string
 	Tmp             string
+	Inputs          []string
+    Names           []string
 	Env 			map[string]string
 }
 type Connector struct {
@@ -27,10 +31,13 @@ type Connector struct {
 	Rv  *ReturnValue
 	Db  redisdb.Database
 }
-
+type BatchRunOptions struct {
+	Batch  bool  `short:"b" long:"batch" description:"Start a batch run mode,this mode is only for job which includes pair-end fastq files.\n"`
+	Split string `short:"S" long:"split" description:"Split file name and use the first item of output array as job name." default:"_"`
+}
 type EditorOptions struct {
 	//Init   string `short:"I" long:"init" description:"Angelina configure file,the content of the file will be stored in the redis,and \n use -g option will generate an angelina template configure file."`
-	PushTemp  string `short:"s" long:"store" description:"Give a pipeline template file,and store it to redis.\n"`
+	PushTemp  string `short:"s" long:"store" description:"\nGive a pipeline template file,and store it to redis.\n"`
 	DisplayTemp  bool `short:"l" long:"list" description:"List the pipelines which have already existed.\n"`
 	DeleteTemp   string `short:"D" long:"delete" description:"Delete the pipeline.\n" default:""`
 	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job.\n" default:""`
@@ -42,7 +49,7 @@ type EditorOptions struct {
 }
 
 type Options struct {
-	Version bool `short:"v" long:"version" description:"software version.\n"`
+	Version bool `short:"v" long:"version" description:"\nsoftware version.\n"`
 	Force bool `short:"f" long:"force" description:"force to run all step of the sample,ignore they are succeed or failed last time.\n"`
 	Sample string `short:"n" long:"name" description:"Sample name.\n" default:""`
 	InputDir string `short:"i" long:"input" description:"Input directory,which includes some files  that are important to run the sample.\n" default:""` 
@@ -52,7 +59,8 @@ type Options struct {
 	Env   []string `short:"e" long:"env" description:"Pass variable to the pipeline template such as TEST=\"test\",this option can be \n\n used many time,eg: -e TEST=\"test1\" -e NAME=\"test\".\n"`
 	Conf  string `short:"c" long:"config" description:"configure file,which include the values of -f -n -i -o -t.\n"`
 	Controller string `short:"a" long:"angelina" description:"Angelina Controller address like ip:port,if you don't set this option,you must set \n\n the System Environment Variable ANGELINA.\n" default:""`
-	Redis string `short:"r" long:"redis" description:"Redis server address,can't use localhost:6379 and 127.0.0.1:6379,because they can't \n\n be accessed by containers,give another address;if the -r option don't give,you must \n\n set the System Environment Variable REDISADDR.\n" default:""`
+	Redis string `short:"r" long:"redis" description:"Redis server address,can't use localhost:6379 and 127.0.0.1:6379,because they can't \n\n be accessed by containers,give another address;if the -r option don't give,you must \n\n set the System Environment Variable REDISADDR." default:""`
+	BatchRun BatchRunOptions `group:"Batch Run Options"`
 	Editor EditorOptions `group:"Other Options"`
 
 }
@@ -66,6 +74,8 @@ func NewConnector() *Connector {
 		Sample: "",
 		PipeTempName: "",
 		GlusterEntryDir: "",
+		Inputs: make([]string,0,1000),
+		Names: make([]string,0,1000),
 		Env: make(map[string]string)}
 	opt := NewOptions() 
 	return &Connector{
@@ -86,6 +96,8 @@ func (cc *Connector) Start() {
 	cc.DeletePipeline()	
 	cc.ListAllTemp()
 	cc.DisplayPipeline()
+	cc.IsBatchRunMode()
+	cc.LoadNames()
 	cc.LastCheck()
 	cc.IsTmpTemplate()
 }
@@ -156,7 +168,7 @@ func (cc *Connector) LastCheck() {
 		fmt.Println("Error: redis address is null")
 		os.Exit(3)
 	}
-	if cc.Rv.Sample == "" {
+	if len(cc.Rv.Names) == 0 {
 		fmt.Println("Error: sample name is null")
 		os.Exit(3)
 	}
@@ -203,6 +215,44 @@ func (cc *Connector) LastCheck() {
 		})
 	}
 }
+func (cc *Connector) LoadNames() {
+  	if len(cc.Rv.Inputs) == 1 && cc.Rv.Sample != "" {
+		cc.Rv.Names = append(cc.Rv.Names,cc.Rv.Sample)
+		return 
+	}
+	for _,dir := range cc.Rv.Inputs {
+		base := path.Base(dir)
+		if strings.Index(base,"batch_") == 0 {
+			cc.Rv.Names = append(cc.Rv.Names,strings.Split(base,"batch_")[1])
+		}else {
+			if cc.Rv.Sample != "" {
+				cc.Rv.Names = append(cc.Rv.Names,cc.Rv.Sample)
+			}
+		}
+	}
+
+}
+func (cc *Connector) IsBatchRunMode() {
+	if cc.Opt.BatchRun.Batch {
+		if cc.Rv.Input != "" {
+			dirs := cc.PreBatchRun()
+			if len(dirs) == 0 {
+				cc.Rv.Inputs = append(cc.Rv.Inputs,cc.Rv.Input)
+			}else {
+				for _,dir := range dirs {
+					cc.Rv.Inputs = append(cc.Rv.Inputs,dir)
+				}
+			}
+		}
+
+	}else {
+		if cc.Rv.Input != "" {
+			cc.Rv.Inputs = append(cc.Rv.Inputs,cc.Rv.Input)
+		} 
+
+	}
+
+}
 /*
 func (cc *Connector) InitAngelina() {
 	if cc.Opt.Editor.Init == "" {
@@ -243,7 +293,6 @@ func (cc *Connector) CheckRedis() {
 	}
 	cc.Db = redisdb.NewRedisDB("tcp",cc.Rv.RedisAddr)
 }
-
 func (cc *Connector) CheckNoConfig() {
 	if strings.Trim(cc.Opt.Sample," ") != "" {
 		cc.Rv.Sample = strings.Trim(cc.Opt.Sample," ")
@@ -435,7 +484,7 @@ func (opt *Options) Check() {
 }
 func (opt *Options) CheckVersion() {
 	if opt.Version {
-		fmt.Println("Angelina v2.0 linux/amd64")
+		fmt.Printf("Angelina %s linux/amd64\n",version.Version)
 		os.Exit(0)
 	}
 

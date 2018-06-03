@@ -3,7 +3,6 @@ import(
 	"time"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"os"
 	"path"
 	"io"
@@ -88,7 +87,21 @@ func TrimBase(srcName,filename string) string {
 		return ""
 	}
 }
-
+func CopyDir(dstName,srcName string) {
+	os.MkdirAll(dstName,0755)
+	dir_list,err := ioutil.ReadDir(srcName)
+	if err != nil {
+		fmt.Println("read %s error,reason: %s\n",srcName,err.Error())
+		return 
+	}
+	for _,v := range dir_list {
+		if v.IsDir() {
+			CopyDir(path.Join(dstName,v.Name()),path.Join(srcName,v.Name()))
+		}else {
+			CopyFile(path.Join(dstName,v.Name()),path.Join(srcName,v.Name()))
+		}
+	}
+}
 func CopyDirDFS(dstName,srcName string,ignore map[string]string) {
 	os.MkdirAll(dstName,0755)
 	dir_list,e := ioutil.ReadDir(srcName)
@@ -123,56 +136,7 @@ func CopyDirDFS(dstName,srcName string,ignore map[string]string) {
 	}
 
 }
-func CopyDir(dstName,srcName string,ignore map[string]string) {
-	os.MkdirAll(dstName,0777)
-	filepath.Walk(srcName,func(filename string,fi os.FileInfo,err error) error {
-		if filename != srcName {
-			if err != nil {
-				return err
-			}
-			if fi.IsDir() {
-					os.MkdirAll(path.Join(dstName,fi.Name()),0777)
-			}else {
-				tfile := TrimBase(srcName,filename)
-				newFile := path.Join(dstName,tfile)
-				if len(ignore) != 0 {
-					if _,ok := ignore[fi.Name()];!ok {
-						if CheckFileExist(newFile) == false {
-							CopyFile(newFile,filename)
 
-						}else {
-							Print("Info","the file " + newFile + " has exist,skip to copy it to glusterfs.",false)
-						}
-					}else {
-						t := path.Base(filename)
-						cfile := strings.Replace(newFile,t,ignore[fi.Name()],-1)
-						srcSuffix := strings.HasSuffix(fi.Name(),".gz")
-						dstSuffix := strings.HasSuffix(ignore[fi.Name()],".gz")
-						if CheckFileExist(cfile) == false {
-							if srcSuffix == true && dstSuffix == false {
-								GzipFile(cfile,filename)
-							}else {
-								CopyFile(cfile,filename)
-							}
-
-						}else {
-							Print("Info","the file " + cfile + " has exist,skip to copy it to glusterfs.",false)
-						}	
-					} 	
-				}else {
-						if CheckFileExist(newFile) == false {
-							CopyFile(newFile,filename)
-                            
-                        }else {
-                            Print("Info","the file " + newFile + " has exist,skip to copy it to glusterfs.",false)
-                        } 
-				}
-			}
-		}
-		return nil
-	})
-
-}
 func GzipFile(outfile,infile string) {
 	gfile,err := os.Open(infile)
 	defer gfile.Close()

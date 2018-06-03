@@ -31,6 +31,7 @@ func (ctrl *Controller) MyTickerFunc() {
 				ctrl.BackupJobs()
 			case <- ctrl.Ticker60.C:
 				ctrl.DeleteExpirationJob()
+				ctrl.BackupWaitSendEmailJobs()
 			case <- ctrl.HandleDataTicker.C:
 				ctrl.RoundHandleRunnerData()
 			
@@ -61,7 +62,10 @@ func (ctrl *Controller) HandleSignal(data string) {
 					FinishedTime: time.Now(),
 					Status: value.Status,
 					Log: value.StepStatus}
-				ctrl.FinishedJobs.Add(info[0],tdata)			
+				ctrl.FinishedJobs.Add(info[0],tdata)
+				if ctrl.SmtpEnabled == true {
+					ctrl.SendMailJobs.Add(sample + "-*-" + value.Status)
+				}				
 			}
 		}
 	}
