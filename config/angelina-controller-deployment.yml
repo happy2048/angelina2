@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: angelina-controller
-        image: happy365/angelina-controller:2.0
+        image: happy365/angelina-controller:latest
         imagePullPolicy: Always
         resources:
           limits:
