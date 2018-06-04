@@ -13,7 +13,8 @@ func main() {
 }
 */
 func CopyFilesToGluster(outdir,indir,data string)  {
-	files := make(map[string]string)
+	tfiles := make(map[string]string)
+	dnames := make([]string,0,1000)
 	if ! gjson.Valid(data) {
         myutils.Print("Error","invalid json File",true)
     }
@@ -28,8 +29,8 @@ func CopyFilesToGluster(outdir,indir,data string)  {
 						if len(tstr) == 2 {
 							src := strings.Trim(tstr[0]," ")
 							dst := strings.Trim(tstr[1]," ")
-							src,dst = LocateName(indir,src,dst)
-							files[src] = dst
+							dnames = append(dnames,dst)
+							LocateName(indir,src,dst,tfiles)
 						}else {
 							myutils.Print("Error","invalid mapping string " + val.String() + ",please to check the pipeline file",true)
 						}
@@ -41,12 +42,27 @@ func CopyFilesToGluster(outdir,indir,data string)  {
         }
 		return true
     })
-	myutils.CopyDirDFS(outdir,indir,files)
+	files := RevertName(tfiles)
+	for _,dname := range dnames {
+		if _,ok := files[dname]; !ok {
+			myutils.Print("Warning","we don't find a file name in the input directory that match the target file name " + dname,false)
+		}
+	}
+	myutils.CopyDirDFS(outdir,indir,tfiles)
 }
+func RevertName(first map[string]string) map[string]string {
+	redata := make(map[string]string)
+	for fkey,fvalue := range first {
+		if _,ok := redata[fvalue]; ok {
+			myutils.Print("Error","the input directory includes more than one files that match the filename " + fvalue,true)
+		}else {
+			redata[fvalue] = fkey
+		}
+	}
+	return redata
 
-func LocateName(srcDir,patten1,patten2 string) (string,string) {
-	srcName := ""
-	dstName := patten2
+}
+func LocateName(srcDir,patten1,patten2 string,tfiles map[string]string) {
 	regConStar := regexp.MustCompile(`\*`)
 	var leftStr string 	
 	leftStr = strings.Replace(patten1,".","\\.",-1)
@@ -66,19 +82,10 @@ func LocateName(srcDir,patten1,patten2 string) (string,string) {
 		if info.IsDir() == false {
 			pats := leftReg.FindAllString(info.Name(),-1)
 			if len(pats) != 0 {
-				if srcName == "" {
-					srcName = info.Name()
-				}else {
-					myutils.Print("Error","we checked that the " + srcDir + " has contains files like " + patten1 + " more than one,please remain one and try again",true)
-				} 
+				tfiles[info.Name()] = patten2
 			}
 		}
 	}
-	if srcName == "" {
-		myutils.Print("Error","we don't find the file like " + patten1 + ",please check the " + srcDir,true)
-		
-	}
-	return srcName,dstName
 }
 
 
