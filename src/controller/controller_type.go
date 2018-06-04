@@ -36,6 +36,7 @@ type JobsNameMap struct {
 }
 type Controller struct {
 	WaitingRunJobs     *myutils.Set
+	CancelJobs         *myutils.Set
 	StartingJobs     *myutils.Set
 	RunningJobs        *myutils.Set
 	WaitingDeleteJobs  *myutils.Set
@@ -136,6 +137,7 @@ func NewController() *Controller {
 		HandleDataTicker: time.NewTicker(30 * time.Second),
 		WaitingRunJobs: myutils.NewSet(),
 		StartingJobs: myutils.NewSet(),
+		CancelJobs: myutils.NewSet(),
 		Service: angelina,
 		NameMap: NewJobsNameMap(),
 		JobsPool:NewJobsMap(),

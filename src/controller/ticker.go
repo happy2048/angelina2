@@ -57,10 +57,15 @@ func (ctrl *Controller) HandleSignal(data string) {
 			if value != nil {
 				sample := value.SampleName
 				ctrl.DeletingJobs.Remove(sample)
+				mystatus := value.Status
+				if ctrl.CancelJobs.Contains(sample) {
+					ctrl.CancelJobs.Remove(sample)
+					mystatus = "cancelled"
+				}
 				tdata := &SimpleJob{
 					Name: sample,
 					FinishedTime: time.Now(),
-					Status: value.Status,
+					Status: mystatus,
 					Log: value.StepStatus}
 				ctrl.FinishedJobs.Add(info[0],tdata)
 				if ctrl.SmtpEnabled == true {

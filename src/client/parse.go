@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"version"
-	"redisdb"
 	"myutils"
 	"strings"
 	"strconv"
@@ -13,7 +12,6 @@ import (
 	"io/ioutil"
 )
 type ReturnValue struct {
-	RedisAddr 		string
 	Sample    		string
 	ControllerAddr  string
 	PipeTemp  		string
@@ -29,18 +27,18 @@ type ReturnValue struct {
 type Connector struct {
 	Opt *Options
 	Rv  *ReturnValue
-	Db  redisdb.Database
 }
 type BatchRunOptions struct {
 	Batch  bool  `short:"b" long:"batch" description:"Start a batch run mode,this mode is only for job which includes pair-end fastq files.\n"`
 	Split string `short:"S" long:"split" description:"Split file name and use the first item of output array as job name." default:"_"`
 }
 type EditorOptions struct {
-	//Init   string `short:"I" long:"init" description:"Angelina configure file,the content of the file will be stored in the redis,and \n use -g option will generate an angelina template configure file."`
 	PushTemp  string `short:"s" long:"store" description:"\nGive a pipeline template file,and store it to redis.\n"`
 	DisplayTemp  bool `short:"l" long:"list" description:"List the pipelines which have already existed.\n"`
 	DeleteTemp   string `short:"D" long:"delete" description:"Delete the pipeline.\n" default:""`
 	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job.\n" default:""`
+	DeleteAllJobs bool  `short:"F" long:"flush" description:"Cancel all jobs.\n"`
+	CancelSendEmail bool `short:"C" long:"cancel" description:"Cancel send emails for current jobs who are watting to send email.\n"`
 	Job          string `short:"j" long:"job" description:"Given the job id or job name,get the job status.\n" default:""`
 	AllJobStatus bool    `short:"J" long:"jobs" description:"Get  all jobs status.\n"`
 	Persist      bool `short:"k" long:"keeping" description:"Get the job status(or all jobs status) all the time,must along with -j or -J.\n"`
@@ -59,7 +57,6 @@ type Options struct {
 	Env   []string `short:"e" long:"env" description:"Pass variable to the pipeline template such as TEST=\"test\",this option can be \n\n used many time,eg: -e TEST=\"test1\" -e NAME=\"test\".\n"`
 	Conf  string `short:"c" long:"config" description:"configure file,which include the values of -f -n -i -o -t.\n"`
 	Controller string `short:"a" long:"angelina" description:"Angelina Controller address like ip:port,if you don't set this option,you must set \n\n the System Environment Variable ANGELINA.\n" default:""`
-	Redis string `short:"r" long:"redis" description:"Redis server address,can't use localhost:6379 and 127.0.0.1:6379,because they can't \n\n be accessed by containers,give another address;if the -r option don't give,you must \n\n set the System Environment Variable REDISADDR." default:""`
 	BatchRun BatchRunOptions `group:"Batch Run Options"`
 	Editor EditorOptions `group:"Other Options"`
 
@@ -70,7 +67,6 @@ func NewConnector() *Connector {
 		Force: "false",
 		Tmp: "false",
 		PipeTemp: "",
-		RedisAddr:"",
 		Sample: "",
 		PipeTempName: "",
 		GlusterEntryDir: "",
@@ -87,11 +83,11 @@ func (cc *Connector) Start() {
 	cc.CheckController()
 	cc.GetJobsStatus()
 	cc.PrintJobInfo()
+	cc.DeleteAllJobs()
+	cc.CancelAllEmail()
 	cc.DeleteMyJob()
 	cc.CheckConfig()
 	cc.CheckNoConfig()
-	cc.CheckRedis()
-	//cc.InitAngelina()
 	cc.StorePipeline()
 	cc.DeletePipeline()	
 	cc.ListAllTemp()
@@ -143,17 +139,6 @@ func (cc *Connector) CheckController() {
 		cc.Rv.ControllerAddr = cc.Opt.Controller
 	}
 }
-func (cc *Connector) Print() {
-	data := `InputDir:%s
-Force: %s
-Tmp: %s
-PipeTemp: %s
-RedisAddr: %s
-Sample: %s
-GlusterEntryDir: %s
-Env: %s\n`
-fmt.Printf(data,cc.Rv.Input,cc.Rv.Tmp,cc.Rv.Force,cc.Rv.PipeTemp,cc.Rv.RedisAddr,cc.Rv.Sample,cc.Rv.GlusterEntryDir,cc.Rv.Env)
-}
 func (cc *Connector) IsTmpTemplate() {
 	if cc.Opt.TmpTemp != "" {
 		cc.Rv.Tmp = "true"
@@ -164,32 +149,24 @@ func (cc *Connector) LastCheck() {
 		fmt.Println("Error: input directory is null")
 		os.Exit(3)
 	}
-	if cc.Rv.RedisAddr == "" {
-		fmt.Println("Error: redis address is null")
-		os.Exit(3)
-	}
 	if len(cc.Rv.Names) == 0 {
 		fmt.Println("Error: sample name is null")
 		os.Exit(3)
 	}
 	if cc.Rv.GlusterEntryDir == "" {
-		ge,err := cc.Db.RedisHashGet("kubernetesConfig","OutputBaseDir")
-		if err != nil {
-			fmt.Println("Error: gluster entry directory is null")
-			os.Exit(3)
-		}
-		cc.Rv.GlusterEntryDir = ge
+		fmt.Println("Error: gluster entry directory is null")
+		os.Exit(3)
 	}
 	if cc.Rv.PipeTemp == "" {
 		if cc.Rv.PipeTempName == "" {
 			fmt.Println("Error: the pipeline template name is null")
 			os.Exit(3)
 		}else {
-			con,err := cc.GetPipelineContent(cc.Rv.PipeTempName)
-			if err != nil {
-				fmt.Printf("Error: get pipline template \"%s\" failed,reason: %s\n",cc.Rv.PipeTempName,err.Error())
+			if ! cc.CheckTempIsExist(cc.Rv.PipeTempName) {
+				fmt.Printf("Error: no this template whose name is %s,exit.\n",cc.Rv.PipeTempName)
 				os.Exit(3)
 			}
+			con := cc.GetTemplateContent(cc.Rv.PipeTempName)
 			if con == "" {
 				fmt.Printf("Error: get pipeline template failed,reason: pipeline does not exist.\n")
 				os.Exit(3)	
@@ -252,46 +229,6 @@ func (cc *Connector) IsBatchRunMode() {
 
 	}
 
-}
-/*
-func (cc *Connector) InitAngelina() {
-	if cc.Opt.Editor.Init == "" {
-		return 
-	}
-	data,err := ioutil.ReadFile(cc.Opt.Editor.Init)
-	if err != nil {
-		fmt.Printf("Error: read file %s failed,reason: %s\n",cc.Opt.Editor.Init,err.Error())
-		os.Exit(3)
-	}
-	cc.ReadConfig(string(data))
-	os.Exit(0)
-}
-*/
-func (cc *Connector) CheckRedis() {
-	cc.Rv.RedisAddr = strings.Trim(cc.Opt.Redis," ")
-	if cc.Rv.RedisAddr == "" {
-		redisAddr := myutils.GetOsEnv("REDISADDR")
-		if redisAddr == "" {
-			fmt.Println("Error: no redis server give,you can use -r option or set System Environment Variable REDISADDR to assign it.")
-			os.Exit(2)
-		}else {
-			cc.Rv.RedisAddr = redisAddr
-		}	
-	}
-	if strings.Index(cc.Rv.RedisAddr,"127.0.0.1") != -1 {
-		fmt.Printf("Error: we check that you set redis address with 127.0.0.1,it can't be used by container.\n")
-		os.Exit(3)
-	}  
-	if strings.Index(cc.Rv.RedisAddr,"localhost") != -1 {
-		fmt.Printf("Error: we check that you set redis address with localhost,it can't be used by container.\n")
-		os.Exit(3)
-	}  
-	testErr := redisdb.RedisTestConnect(cc.Rv.RedisAddr)
-	if testErr != nil {
-		fmt.Printf("Error: connect redis failed,reason: %s\n",testErr.Error())
-		os.Exit(3)
-	}
-	cc.Db = redisdb.NewRedisDB("tcp",cc.Rv.RedisAddr)
 }
 func (cc *Connector) CheckNoConfig() {
 	if strings.Trim(cc.Opt.Sample," ") != "" {
@@ -364,12 +301,6 @@ func (cc *Connector) CheckConfig() {
 			val := strings.Trim(value.String()," ")
 			if val != "" {
 				cc.Rv.Sample = val
-			}
-
-		}else if key.String() == "redis-address" {
-			val := strings.Trim(value.String()," ")
-			if val != "" {
-				cc.Rv.RedisAddr = val
 			}
 
 		}else if key.String() == "template-env" {

@@ -2,7 +2,6 @@ package client
 import (
 	"fmt"
 	"sync"
-	"redisdb"
 	"validator"
 	"os"
 	"cpfile"
@@ -17,7 +16,6 @@ type BackJobs struct {
     Starting []string `json:"starting"`
 }
 type BatchClient struct {
-	Db redisdb.Database
 	Names []string
 	Inputs []string
 	BaseDir string
@@ -35,8 +33,7 @@ type Client struct {
 	InputDir string
 	PipeObj   *validator.Validator  
 }
-func NewBatchClient(conAddr,redisAddr,glusterDir,template,cover,tname,istmp string,params map[string]string,names,inputs []string) *BatchClient {
-	db := redisdb.NewRedisDB("tcp",redisAddr)
+func NewBatchClient(conAddr,glusterDir,template,cover,tname,istmp string,params map[string]string,names,inputs []string) *BatchClient {
 	referDir := "/mnt/refer"
 	dataDir := "/mnt/data"
 	clis := make([]*Client,0,len(names))
@@ -45,7 +42,6 @@ func NewBatchClient(conAddr,redisAddr,glusterDir,template,cover,tname,istmp stri
 		clis = append(clis,cli)
 	}
 	return &BatchClient {
-		Db: db,
 		Inputs: inputs,
 		Names: names,
 		JobRunningKey: "angelina-running-jobs",
@@ -74,46 +70,38 @@ func NewClient(template,name,indir,referDir,dataDir string,params map[string]str
 func (bcli *BatchClient) Start() {
 	var wg sync.WaitGroup
 	for ind,name := range bcli.Names {
-		if bcli.CheckSampleIsRunning(name) == true {
-			myutils.Print("Info","job " + name + " is running,we don't init it.",false)
-		}else {
-			wg.Add(1)
-			go func(tname string,index int) {
-				defer wg.Done()
-				bcli.Init(tname,index)
-			}(name,ind)
+		status := bcli.CheckSampleIsRunning(name)
+		if status == "Running" || status == "Starting" || status == "WaitToRun" {
+			pstr := fmt.Sprintf("job %s is %s,we don't init it",name,status)
+			myutils.Print("Info",pstr,false)
+			continue
 		}
+		wg.Add(1)
+		go func(tname string,index int) {
+			defer wg.Done()
+			bcli.Init(tname,index)
+		}(name,ind)
 	}
 	wg.Wait()
 }
-func (bcli *BatchClient) CheckSampleIsRunning(name string) bool{
-    var back BackJobs
-	sample := name
-    data,err := bcli.Db.RedisStringGet(bcli.JobRunningKey)
-    if err != nil {
-        return false
-    }
-    err = json.Unmarshal([]byte(data),&back)
-    if err != nil {
-        return false
-    }
-    for _, job := range back.Running {
-		if job == sample {
-			return true
-		}
-    }
-    for _, job := range back.Starting {
-		if job == sample {
-			return true
-		}
-		
-    }
-    for _, job := range back.Waiting {
-		if job == sample {
-			return true
-		}
-    }
-	return false
+func (bcli *BatchClient) CheckSampleIsRunning(name string) string {
+	host := strings.Trim(bcli.ControllerAddr," ")
+	url := `http://%s/checkJob?name=%s`
+	url = fmt.Sprintf(url,host,name)
+	redata,err := Operate("GET",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("check job status %s failed,reason: %s",name,err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	if data.Data == "" {
+		myutils.Print("Info",data.Msg,true)
+	}
+	return data.Data
 }
 func (bcli *BatchClient) Init(name string, index int) {
 	bcli.CopyFile(name,index)
@@ -125,7 +113,7 @@ func (bcli *BatchClient) CreateJob(name string) {
 	job := strings.Trim(name," ")
 	url := `http://%s/job?job=%s&operate=create`
 	url = fmt.Sprintf(url,host,job)
-	redata,err := Operate("GET",url)
+	redata,err := Operate("GET",url,"")
 	if err != nil {
 		fmt.Printf("create job %s failed,reason: %s\n",job,err.Error())
 		return

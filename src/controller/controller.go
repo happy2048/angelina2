@@ -23,7 +23,7 @@ func (ctrl *Controller) Start() {
 	go ctrl.HttpServer()
 	go ctrl.RecoveryJobs()
 	go ctrl.RecoverySendEmailJobs()
-	time.Sleep(20 * time.Second)
+	time.Sleep(25 * time.Second)
 	ctrl.CheckWhoAlive()
 	ctrl.HandleRecoveryData()
 	go ctrl.DeleteRecoveryKey()
@@ -75,6 +75,7 @@ func (ctrl *Controller) DeleteJob(job string) {
 	}
 	if ctrl.RunningJobs.Contains(job) {
 		prefix := myutils.GetSamplePrefix(job)
+		ctrl.CancelJobs.Add(job)
 		go ctrl.JobsPool.Read(prefix).DeleteCons()
 		return
 	}
@@ -104,6 +105,8 @@ func (ctrl *Controller) CreateJob(job string) {
 	ctrl.AppendLogToQueue("Info","start to create job",job)
 	prefix := myutils.GetSamplePrefix(job)
 	ctrl.FinishedJobs.Remove(prefix)
+	ctrl.SendMailJobs.Remove(job + "-*-" + "failed")
+	ctrl.SendMailJobs.Remove(job + "-*-" + "succeed")
 	if ctrl.RunningJobs.Contains(job) || ctrl.StartingJobs.Contains(job) {
 		ctrl.AppendLogToQueue("Info","job",job,"has in the RunningJobs or StartingJobs")
 		ctrl.WaitingRunJobs.Remove(job)
@@ -342,9 +345,10 @@ func (ctrl *Controller) GetJobStatus(key string) string {
 }
 
 func (ctrl *Controller) GetJobStat(name,key string) string {
+	split := "   "
 	if name != "" {
 		if ctrl.WaitingRunJobs.Contains(name) {
-			return "the job " + key + " is waiting to run"
+			return myutils.GetTime() + split + "Info" + split + "the job " + key + " is waiting to run"
 		}
 		if ctrl.RunningJobs.Contains(name) {
 			prefix := myutils.GetSamplePrefix(name)
@@ -352,17 +356,17 @@ func (ctrl *Controller) GetJobStat(name,key string) string {
 			if job != nil {
 				return job.StepStatus + "\n" 
 			}else {
-				return "get job " + key + " status failed"
+				return myutils.GetTime() + split + "Info" + split + "get job " + key + " status failed"
 			}
 		}
 		if ctrl.StartingJobs.Contains(name) {
-			return "job " + key + " is starting"
+			return myutils.GetTime() + split + "Info" + split + "job " + key + " is starting"
 		}
 		if ctrl.DeletingJobs.Contains(name) {
-			return "job " + key + " is deleting"
+			return myutils.GetTime() + split + "Info" + split + "job " + key + " is deleting"
 		}
 		if ctrl.WaitingDeleteJobs.Contains(name) {
-			return "job " + key + " is waiting to delete"
+			return myutils.GetTime() + split + "Info" + split + "job " + key + " is waiting to delete"
 		}
 		prefix := myutils.GetSamplePrefix(name)
 		if ctrl.FinishedJobs.Contain(prefix) {
@@ -370,12 +374,12 @@ func (ctrl *Controller) GetJobStat(name,key string) string {
 			if job != nil {
 				return job.Log + "\n"
 			}else {
-				return "get job " + key + " status failed"
+				return myutils.GetTime() + split + "Info" + split + "get job " + key + " status failed"
 			}
 		}
-		return "no this job id: " + key
+		return myutils.GetTime() + split + "Info" + split + "no this job id: " + key
 	}else {
-		return "no this job id: " + key
+		return myutils.GetTime() + split + "Info" + split + "no this job id: " + key
 	}
 }
 func (ctrl *Controller) CheckNameMap() {
@@ -498,7 +502,7 @@ func (ctrl *Controller) BackupWaitSendEmailJobs() {
 		return 
 	}
 	data := strings.Join(members,"-**-")
-	_,err := ctrl.Db.RedisStringSetWithEx("AngelinaWaitSendEmail",data,86400)
+	_,err := ctrl.Db.RedisStringSetWithEx("AngelinaWaitSendEmail",data,180)
 	if err != nil {
 		ctrl.AppendLogToQueue("Error","backup waitSendEmailJob failed,reason: ",err.Error())
 	}

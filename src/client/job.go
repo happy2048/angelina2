@@ -14,9 +14,15 @@ type ReturnData struct {
 	Msg  string  `json:"msg"`
 	Data string   `json:"data"`
 }
-func Operate(method,url string) (string,error) {
+func Operate(method,url,data string) (string,error) {
     client := &http.Client{}
-	request, _ := http.NewRequest(method,url, nil)
+	var request *http.Request
+    var err error
+    if data == "" {
+        request,err = http.NewRequest(method,url,nil)
+    }else {
+        request,err = http.NewRequest(method,url,strings.NewReader(data))
+    }
 	request.Header.Set("Connection", "keep-alive")
 	response,err := client.Do(request)
 	if err != nil {
@@ -31,24 +37,169 @@ func Operate(method,url string) (string,error) {
 	}
 	return "",fmt.Errorf("%s","requst failure")
 }
+
+func (cc *Connector) CancelSendEmails() {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/cancelEmails`
+	url = fmt.Sprintf(url,host)
+	redata,err := Operate("DELETE",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("cancel sending emails failed,reason: %s",err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	myutils.Print("Info",data.Msg,false)
+	os.Exit(0)
+}
+func (cc *Connector) CheckTempIsExist(name string) bool {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/checkTemp?name=%s`
+	url = fmt.Sprintf(url,host,name)
+	redata,err := Operate("GET",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("check template %s failed,reason: %s",name,err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	if data.Data == "" {
+		myutils.Print("Info",data.Msg,true)
+	}
+	if data.Data == "true" {
+		return true
+	}else {
+		return false
+	}
+}
+func (cc *Connector) DelJobs() {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/cancelJobs`
+	url = fmt.Sprintf(url,host)
+	redata,err := Operate("DELETE",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("delete all jobs failed,reason: %s",err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	myutils.Print("Info",data.Msg,false)
+	os.Exit(0)
+}
+func (cc *Connector) StoreTemplate(info string) {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/storeTemp`
+	url = fmt.Sprintf(url,host)
+	redata,err := Operate("POST",url,info)
+	if err != nil {
+		pstr := fmt.Sprintf("store template failed,reason: %s",err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	myutils.Print("Info",data.Msg,false)
+	os.Exit(0)
+} 
+func (cc *Connector) DeleteTemplate(name string) {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/deleteTemp?name=%s`
+	url = fmt.Sprintf(url,host,name)
+	redata,err := Operate("DELETE",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("delete template %s failed,reason: %s",name,err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	myutils.Print("Info",data.Msg,false)
+	os.Exit(0)
+}
+func (cc *Connector) GetTemplateContent(name string) string {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/getTemp?name=%s`
+	url = fmt.Sprintf(url,host,name)
+	redata,err := Operate("GET",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("query template %s failed,reason: %s",name,err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	return data.Data
+}
+func (cc *Connector) GetTemplateCon(name string) {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/getTemp?name=%s`
+	url = fmt.Sprintf(url,host,name)
+	redata,err := Operate("GET",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("query template %s failed,reason: %s",name,err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	if data.Data != "" {
+		fmt.Println(data.Data)
+		os.Exit(0)
+	}
+	myutils.Print("Info",data.Msg,true)
+}
+func (cc *Connector) GetAllTemplates() {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/queryTemp`
+	url = fmt.Sprintf(url,host)
+	redata,err := Operate("GET",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("query templates failed,reason: %s",err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	if data.Data != "" {
+		fmt.Println(data.Data)
+		os.Exit(0)
+	}
+	myutils.Print("Info",data.Msg,true)
+}
 func (cc *Connector) DeleteJob(job string) {
 	host := strings.Trim(cc.Rv.ControllerAddr," ")
 	url := `http://%s/job?job=%s&operate=delete`
 	url = fmt.Sprintf(url,host,job)
-	redata,err := Operate("POST",url)
+	redata,err := Operate("POST",url,"")
 	if err != nil {
-		fmt.Printf("delete job %s failed,reason: %s\n",job,err.Error())
-		os.Exit(3)
+		pstr := fmt.Sprintf("delete job %s failed,reason: %s",job,err.Error())
+		myutils.Print("Error",pstr,true)
 	}
 	if redata != "" {
-		redata = strings.Replace(redata,"\n","-***-",-1)
 		var data ReturnData
 		err := json.Unmarshal([]byte(redata),&data)
 		if err != nil {
-			fmt.Printf("parse return message failed,exit\n")
-			os.Exit(3)
+			myutils.Print("Error","parse return message failed,exit.",true)
 		}
-		data.Data = strings.Replace(data.Data,"-***-","\n",-1)
 		myutils.Print("Info",data.Msg,false)
 		os.Exit(0)	
 	}
@@ -57,24 +208,22 @@ func (cc *Connector) GetAllJobStatus(nice bool) {
 	host := strings.Trim(cc.Rv.ControllerAddr," ")
 	url := `http://%s/query`
 	url = fmt.Sprintf(url,host)
-	redata,err := Operate("GET",url)
+	redata,err := Operate("GET",url,"")
 	if err != nil {
-		fmt.Printf("query all jobs' status failed,reason: %s\n",err.Error())
-		os.Exit(3)
+		pstr := fmt.Sprintf("query all jobs' status failed,reason: %s",err.Error())
+		myutils.Print("Error",pstr,true)
 	}
 	if redata != "" {
-		redata = strings.Replace(redata,"\n","-***-",-1)
 		var data ReturnData
 		err := json.Unmarshal([]byte(redata),&data)
 		if err != nil {
-			fmt.Printf("parse return message failed,reason: %s\n",err.Error())
-			os.Exit(3)
+			pstr := fmt.Sprintf("parse return message failed,reason: %s",err.Error())
+			myutils.Print("Error",pstr,true)
 		}
 		if data.Data == "" {
-			fmt.Println("no jobs in the angelina")
+			myutils.Print("Info","no jobs in the angelina.",false)
 			os.Exit(0)
 		}
-		data.Data = strings.Replace(data.Data,"-***-","\n",-1)
 		if !nice {
 			fmt.Println(data.Data)
 		}else {
@@ -89,28 +238,26 @@ func (cc *Connector) GetJobStatus(job string,nice bool) {
 	host := strings.Trim(cc.Rv.ControllerAddr," ")
 	url := `http://%s/job?job=%s&operate=status`
 	url = fmt.Sprintf(url,host,job)
-	redata,err := Operate("GET",url)
+	redata,err := Operate("GET",url,"")
 	if err != nil {
-		fmt.Printf("get job %s status failed,reason: %s\n",job,err.Error())
-		os.Exit(3)
+		pstr := fmt.Sprintf("get job %s status failed,reason: %s",job,err.Error())
+		myutils.Print("Error",pstr,true)
 	}
 	if redata != "" {
 		var data ReturnData
-		redata = strings.Replace(redata,"\n","-***-",-1)
 		err := json.Unmarshal([]byte(redata),&data)
 		if err != nil {
-			fmt.Printf("parse return message failed,reason: %s\n",err.Error())
-			os.Exit(3)
+			pstr := fmt.Sprintf("parse return message failed,reason: %s",err.Error())
+			myutils.Print("Error",pstr,true)
 		}
 		if data.Data == "" {
-			fmt.Printf("get the status of job %s is null\n",job)
+			pstr := fmt.Sprintf("get the status of job %s is null",job)
+			myutils.Print("Info",pstr,true)
 		}
 		if !nice {
-			data.Data = strings.Replace(data.Data,"-***-","\n",-1)
 			fmt.Println(data.Data)
 
 		}else {
-			data.Data = strings.Replace(data.Data,"-***-","\n",-1)
 			tdata := strings.Split(data.Data,"\n")
 			for _,line := range tdata {
 				fmt.Println(line)

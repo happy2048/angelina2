@@ -16,7 +16,6 @@ var ConfigTemplate = `{
 	"input-directory": "",
 	"glusterfs-entry-directory": "",
 	"sample-name": "",
-	"redis-address":"",
 	"template-env": [],
 	"pipeline-template-name": "",
 	"force-to-cover": "no"
@@ -53,13 +52,3 @@ var StepTemp = `		"%s": {
 			"request-type": ""
 		}%s
 `
-
-
-
-
-
-
-
-
-
-
