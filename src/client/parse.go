@@ -33,7 +33,7 @@ type BatchRunOptions struct {
 	Split string `short:"S" long:"split" description:"Split file name and use the first item of output array as job name." default:"_"`
 }
 type EditorOptions struct {
-	PushTemp  string `short:"s" long:"store" description:"\nGive a pipeline template file,and store it to redis.\n"`
+	PushTemp  string `short:"p" long:"push" description:"\nGive a pipeline template file,and store it to angelina-controller.\n"`
 	DisplayTemp  bool `short:"l" long:"list" description:"List the pipelines which have already existed.\n"`
 	DeleteTemp   string `short:"D" long:"delete" description:"Delete the pipeline.\n" default:""`
 	DeleteJob    string `short:"d" long:"del" description:"Given the job id or job name,Delete the job.\n" default:""`
@@ -42,6 +42,7 @@ type EditorOptions struct {
 	Job          string `short:"j" long:"job" description:"Given the job id or job name,get the job status.\n" default:""`
 	AllJobStatus bool    `short:"J" long:"jobs" description:"Get  all jobs status.\n"`
 	Persist      bool `short:"k" long:"keeping" description:"Get the job status(or all jobs status) all the time,must along with -j or -J.\n"`
+	Step         string `short:"s" long:"step" description:"print the step run logs,must be used with -j.\n" default:""`
 	QueryTemp  string  `short:"q" long:"query" description:"give the pipeline id or pipeline name to get it's content.\n" default:""`
 	Gener   string  `short:"g" long:"generate" description:"Two value(\"conf\",\"pipe\") can be given,\"pipe\" is to generate a pipeline template file \n \n and you can edit it and use -s to store the pipeline,you can give value like \"pipe:10\" \n\n which \"10\" is represented total 10 steps;\"conf\" is to generate running configure file \n\n and you can edit it and use -c option to run the sample." default:""`
 }
@@ -82,6 +83,7 @@ func (cc *Connector) Start() {
 	cc.Opt.Start()
 	cc.CheckController()
 	cc.GetJobsStatus()
+	cc.PrintStepLog()
 	cc.PrintJobInfo()
 	cc.DeleteAllJobs()
 	cc.CancelAllEmail()
@@ -117,6 +119,16 @@ func (cc *Connector) PrintJobInfo() {
 	}
 	cc.GetJobStatus(job,false)
 	os.Exit(0)
+}
+func (cc *Connector) PrintStepLog() {
+	if cc.Opt.Editor.Step == "" {
+		return 
+	}
+	if cc.Opt.Editor.Job == "" {
+		fmt.Println("Error: -s option must be used with -j option.")
+		os.Exit(3)
+	}
+	cc.GetLogs(cc.Opt.Editor.Job,cc.Opt.Editor.Step)
 }
 func (cc *Connector) GetJobsStatus() {
 	if cc.Opt.Editor.AllJobStatus  {

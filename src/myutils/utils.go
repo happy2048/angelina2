@@ -22,6 +22,14 @@ func Print(info,printStr string,exit bool) {
 		os.Exit(1)
 	}
 }
+func GetStr(level string,infos ...string) string {
+	split := "   "
+	redata := GetTime() + split + level + split 
+	for _,info := range infos {
+		redata = redata + " " + info
+	}
+	return redata
+}
 func GetSamplePrefix(name string) string {
 	tmp := GetSha256(name)
 	return "pipe" +  tmp[54:]

@@ -37,7 +37,28 @@ func Operate(method,url,data string) (string,error) {
 	}
 	return "",fmt.Errorf("%s","requst failure")
 }
+func (cc *Connector) GetLogs(job,step string) {
+	host := strings.Trim(cc.Rv.ControllerAddr," ")
+	url := `http://%s/log?job=%s&step=%s`
+	url = fmt.Sprintf(url,host,job,step)
+	redata,err := Operate("GET",url,"")
+	if err != nil {
+		pstr := fmt.Sprintf("get the logs of %s in %s failed,reason: %s",step,job,err.Error())
+		myutils.Print("Error",pstr,true)
+	}
+	var data ReturnData
+	err = json.Unmarshal([]byte(redata),&data)
+	if err != nil {
+		myutils.Print("Error","parse return message failed,exit.",true)
+	}
+	if data.Data != "" {
+		fmt.Println(data.Data)
+		os.Exit(0)
+	}
+	fmt.Println(data.Msg)
+	os.Exit(0)
 
+}
 func (cc *Connector) CancelSendEmails() {
 	host := strings.Trim(cc.Rv.ControllerAddr," ")
 	url := `http://%s/cancelEmails`

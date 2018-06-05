@@ -3,6 +3,7 @@ import (
     "io"
 	"io/ioutil"
     "net/http"
+	"path"
 	"fmt"
 	"strings"
 	"strconv"
@@ -27,6 +28,7 @@ type Redata  struct {
 }
 func (ctrl *Controller) HttpServer() {
 	http.HandleFunc("/job",ctrl.JobsOptionServe)
+	http.HandleFunc("/log",ctrl.ReturnStepLog)
 	http.HandleFunc("/checkJob",ctrl.QueryJobStatus)
 	http.HandleFunc("/cancelJobs",ctrl.DeleteAllJobs)
 	http.HandleFunc("/query",ctrl.QueryOptionServe)
@@ -415,4 +417,63 @@ func (ctrl *Controller) CancelSendCurrentEmails(w http.ResponseWriter,req *http.
 		}
 	}
 	ctrl.ReturnValue(w,1000,"","cancel operation of send current jobs succeed.")
+}
+func (ctrl *Controller) ReturnStepLog(w http.ResponseWriter,req *http.Request) {
+	if req.Method != "GET" {
+		ctrl.ReturnValue(w,1300,"","invalid method " + req.Method)
+		return 
+	}
+	req.ParseForm()
+	if len(req.Form["job"]) != 1 {
+		restr := myutils.GetStr("Error","invalid url,no job given or job gives more than one.")
+		ctrl.ReturnValue(w,1101,"",restr)
+		return
+	}
+	if len(req.Form["step"]) != 1 {
+		restr := myutils.GetStr("Error","invalid url,no step given or step gives more than one.")
+		ctrl.ReturnValue(w,1102,"",restr)
+		return
+	}
+	job := req.Form["job"][0]
+	step := req.Form["step"][0]
+	if ! myutils.CheckFileExist(path.Join("/mnt/data",job)) {
+		restr := myutils.GetStr("Error","we can't find the job which name is",job)
+		ctrl.ReturnValue(w,1501,"",restr)
+		return 
+	}
+	if ! myutils.CheckFileExist(path.Join("/mnt/data",job,step)) {
+		restr := myutils.GetStr("Error","can't find the",step,"in",job)
+		ctrl.ReturnValue(w,1502,"",restr)
+		return 
+	}
+	logs := make([]string,0,2)
+	if myutils.CheckFileExist(path.Join("/mnt/data",job,step,"logs")) {
+		logdir := path.Join("/mnt/data",job,step,"logs")
+		dir_list,err := ioutil.ReadDir(logdir)
+    	if err != nil {
+			restr := myutils.GetStr("Error","read logs directory failed,reason: ",err.Error())
+			ctrl.ReturnValue(w,1502,"",restr)
+        	return
+    	}
+    	for _,v := range dir_list {
+        	if !v.IsDir() {
+				data,err := ioutil.ReadFile(path.Join(logdir,v.Name()))
+				if err != nil {
+					ctrl.AppendLogToQueue("Error","read logs file failed,reason: ",err.Error())
+					continue
+				}
+				if strings.Trim(string(data),"\n") != "" {
+					logs = append(logs,string(data))
+				}
+        	}
+    	}
+		ctrl.ReturnValue(w,1000,strings.Join(logs,"\n"),"")
+		return
+	}else {
+		restr := myutils.GetStr("Error","not found logs for",step,"of",job)
+		ctrl.ReturnValue(w,1503,"",restr)
+		return 
+		
+	}
+		
 }

@@ -48,6 +48,7 @@ func CopyFilesToGluster(outdir,indir,data string)  {
 			myutils.Print("Warning","we don't find a file name in the input directory that match the target file name " + dname,false)
 		}
 	}
+	myutils.Print("Info","start to copy files to glusterfs,waiting...",false)
 	myutils.CopyDirDFS(outdir,indir,tfiles)
 }
 func RevertName(first map[string]string) map[string]string {
