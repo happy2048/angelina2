@@ -169,8 +169,9 @@ func ReplaceTarget(regRefer  *regexp.Regexp,flag string,refer map[string]string,
 func (vd *Validator) ValidatePreStep() {
 	for key,value := range vd.NormData {
 		for _,ival := range value.Prestep {
-			curIndex,_ := GetStepIndex(key)
-			preIndex,err := GetStepIndex(strings.Trim(ival," "))	
+			//curIndex,_ := GetStepIndex(key)
+			//preIndex,err := GetStepIndex(strings.Trim(ival," "))	
+			_,err := GetStepIndex(strings.Trim(ival," "))	
 			if err != nil {
 				myutils.Print("Error","invalid prestep " + ival + " of " + key + ",reason: " + err.Error(),true)
 			}
@@ -178,9 +179,11 @@ func (vd *Validator) ValidatePreStep() {
 			if _,ok := vd.NormData[prestep]; !ok {
 				myutils.Print("Error","invalid prestep " + ival + " of " + key + ",because it is not defined",true)
 			}
+			/*
 			if preIndex >= curIndex {
 				myutils.Print("Error","invalid prestep " + ival + " of " + key + ",because it is behind " + key,true)
 			}
+			*/
 		}
 
 	}
