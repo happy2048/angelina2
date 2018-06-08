@@ -54,7 +54,7 @@ angelina controller架构图如下所示：
 * 由angelina client去启动一个job。
 * angelina client与angelina controller之间的通信以及angelina controller与angelina runner之间的通信是依靠redis的订阅发布模式。
 * runner之间的文件共享通过glusterfs完成。
-* task的运行状态存放在redis当中。
+* task的运行状态存放在angelina-controller当中。
 
 **angelina命令行帮助信息**
 	
@@ -85,14 +85,14 @@ angelina controller架构图如下所示：
                       可以将-f,-n,-i,-t所有参数写到一个配置文件中，配置文件的模板生成可以使用-g conf产生。
 	  -a, --angelina= Angelina Controller address like ip:port,if you don't set this option,you must set the System Environment Variable ANGELINA.
                       设置angelina contoller的地址，格式为ip:port,如果加该选项，那么必须设置系统环境变量ANGELINA,否则程序不会运行。
-	  -r, --redis=    Redis server address,can't use localhost:6379 and 127.0.0.1:6379,because they can't
-	                  be accessed by containers,give another address;if the -r option don't give,you must
-	                  set the System Environment Variable REDISADDR.
-                      设置angelina持久化数据库redis，格式为ip:port,如果不指定该选项，需要设置系统环境变量REDISADDR,否则程序不会运行。
-	
+	Batch Run Options:
+	  -b, --batch     Start a batch run mode,this mode is only for job which includes pair-end fastq files.
+                      使用batch run模式运行，这种模式仅适用于双端序列多样本情况，这种模式下，多个样本可以放在一起。	
+	  -S, --split=    Split file name and use the first item of output array as job name. (default: _)
+                      在batch run模式下，会以该分割符分割文件名，将分割数组中第一个元素作为job名。
 	Other Options:
-	  -s, --store=    Give a pipeline template file,and store it to redis.
-                      如果有新的任务流模板，使用此选项把该模板保存到redis当中。
+	  -p, --push=     Give a pipeline template file,and store it to angelina-controller.
+                      如果有新的任务流模板，使用此选项把该模板保存到angelina-controller当中。
 	  -l, --list      List the pipelines which have already existed.
                       列出当前已经存在的模板。
 	  -D, --delete=   Delete the pipeline.
@@ -103,23 +103,31 @@ angelina controller架构图如下所示：
                       给出作业名或者作业号，获取其状态。
 	  -J, --jobs      Get  all jobs status.
                       列出所有作业的状态。
+	  -C, --cancel    Cancel send emails for current jobs who are watting to send email.
+                      如果启用邮箱通知功能，使用该选项可以取消在该时间段应该发送的邮件。
+	  -F, --flush     Cancel all jobs.
+                      删除所有任务。
+      -s, --step=     print the step run logs,must be used with -j.
+                      打印指定job的指定step的日志信息，需跟-j一起使用。
 	  -k, --keeping   Get the job status(or all jobs status) all the time,must along with -j or -J.
                       持续获取单个作业或者所有作业的状态，必须与-j或-J一起使用。
 	  -q, --query=    give the pipeline id or pipeline name to get it's content.
                       查询指定模板的详细内容。
-	  -g, --generate= Three value("conf","pipe") can be given,"pipe" is to generate a pipeline
-	                  template file and you can edit it and use -s to store the pipeline;"conf" is to
-	                  generate running configure file and you can edit it and use -c option to run the
-	                  sample.
-                      产生配置文件模板，任务流模板，其中配置文件模板供-c选项使用，任务流模板供-s使用。
+	  -g, --generate= Two value("conf","pipe") can be given,"pipe" is to generate a pipeline template file
+	                  and you can edit it and use -s to store the pipeline,you can give value like "pipe:10"
+	                  which "10" is represented total 10 steps;"conf" is to generate running configure file
+	                  and you can edit it and use -c option to run the sample.
+                      产生配置文件模板，任务流模板，其中配置文件模板供-c选项使用，任务流模板供-p使用。
 	
 	Help Options:
 	  -h, --help      Show this help message
+	
+
 
 
 **angelina模板文件书写**
 
-使用 angelina -g pipe 可以产生一个模板文件，只需要在此基础上填写相应的内容即可，模板如下：
+使用 angelina -g pipe 可以产生一个模板文件（使用 -g pipe:n 可以产生一个具有n个step的模板文件，比如： -g pipe:10），只需要在此基础上填写相应的内容即可，模板如下：
 
 	{
 		"pipeline-name": "",  // 模板名称
@@ -290,6 +298,132 @@ step域说明：
 	（5）在step当中用到的所有文件都是使用相对路径。
 	（6）step0只能被引用，不能被定义,否则模板校验不会通过。
 	（7）除了request-type（或者limit-type）和 request(或者limit)可以不定义外，其他都必须填写，没有用相应的空值替代。
+
+**命令行使用**
+
+1.查看angelina上运行的所有job：
+
+	[root@kuber-master ~]# angelina -J
+                                	Angelina                                    
+	********************************************************************************
+	Date       Time       Job Id           Status         Job Name
+	--------------------------------------------------------------------------------
+	2018-06-08 17:26:23   pipe3c7113f380   Running        1701239-M
+	********************************************************************************
+
+2.查看指定job的运行状态：
+
+	[root@kuber-master ~]# angelina -j  1701239-M 
+	                                                      Running  Status                                             
+	*******************************************************************************************************************************
+	Software          Name: angelina
+	Software       Version: v2.3
+	Template          Name: ExonAnalysis
+	Template Estimate Time: 0h 0m 0s
+	Running Sample    Name: 1701239-M
+	Already Running   Time: 48h 7m 24s
+	------------------------------------------------------------------------------------------------------------------------------
+	Date       Time       Step     Sub  Status   Deployment-Id    Run-Time     Pre-Steps             Command                  
+	------------------------------------------------------------------------------------------------------------------------------
+	2018-06-08 17:27:43   step1    0    succeed  deploy6e9ac4b8b  0h 0m 0s     ---                   Fastp                    
+	2018-06-08 17:27:43   step2    0    succeed  deploye17db9beb  0h 0m 0s     1                     Minimap2                 
+	2018-06-08 17:27:43   step3    0    succeed  deploya9d033403  5h 17m 40s   20                    Sambamba View            
+	2018-06-08 17:27:43   step4    0    succeed  deploy4ea00ccbb  1h 42m 26s   3                     Sambamba Markdup         
+	2018-06-08 17:27:43   step5    0    succeed  deploy5d22713c1  0h 20m 50s   4                     RealignerTargetCreator   
+	2018-06-08 17:27:43   step6    0    succeed  deploy2cf0e6c36  3h 1m 50s    5                     IndelRealigner           
+	2018-06-08 17:27:43   step7    0    succeed  deploy16d634e80  7h 19m 50s   6                     BaseRecalibrator         
+	2018-06-08 17:27:43   step8    0    succeed  deploy99ea10261  8h 46m 49s   7                     PrintReads               
+	2018-06-08 17:27:43   step9    0    running  deploy3fc36773a  21h 36m 49s  8                     HaplotypeCaller          
+	2018-06-08 17:27:43   step10   0    ready    not allocate     0h 0m 0s     9                     SelectVariants           
+	2018-06-08 17:27:43   step11   0    ready    not allocate     0h 0m 0s     10                    VariantFiltration        
+	2018-06-08 17:27:43   step12   0    ready    not allocate     0h 0m 0s     9                     SelectVariants           
+	2018-06-08 17:27:43   step13   0    ready    not allocate     0h 0m 0s     12                    VariantFiltration        
+	2018-06-08 17:27:43   step14   0    ready    not allocate     0h 0m 0s     13,11                 CombineVariants          
+	2018-06-08 17:27:43   step15   0    ready    not allocate     0h 0m 0s     14                    SelectVariants           
+	2018-06-08 17:27:43   step16   0    ready    not allocate     0h 0m 0s     15                    Annovar                  
+	2018-06-08 17:27:43   step17   0    ready    not allocate     0h 0m 0s     15                    SnpEff                   
+	2018-06-08 17:27:43   step18   0    ready    not allocate     0h 0m 0s     17,16                 ProduceJson              
+	2018-06-08 17:27:43   step19   0    ready    not allocate     0h 0m 0s     18                    PushJson                 
+	2018-06-08 17:27:43   step20   0    succeed  deploy242f8522c  0h 0m 0s     2                     Samblaster               
+	*******************************************************************************************************************************
+
+3.查看指定job的相关step日志信息：
+
+	[root@kuber-master ~]# angelina -j  1701239-M  -s step3
+	2018-06-06 14:37:43	Info	the command sambamba view -S -f bam -l 0  /mnt/data/1701239-M/step20/step20_samblaster.sam  | sambamba sort -t 6 -m 40G  --tmpdir /mnt/data/1701239-M/step3/tmp   -o /mnt/data/1701239-M/step3/step3_sorted.bam  /dev/stdin &&   sambamba index /mnt/data/1701239-M/step3/step3_sorted.bam  will run
+	2018-06-06 14:37:43	Info	the command run status sambamba view -S -f bam -l 0  /mnt/data/1701239-M/step20/step20_samblaster.sam  | sambamba sort -t 6 -m 40G  --tmpdir /mnt/data/1701239-M/step3/tmp   -o /mnt/data/1701239-M/step3/step3_sorted.bam  /dev/stdin &&   sambamba index /mnt/data/1701239-M/step3/step3_sorted.bam  has send to channel
+
+4.连续侦听指定job的运行状态：
+
+	[root@kuber-master ~]# angelina -j  1701239-M -k
+
+5.连续侦听所有job的运行状态：
+
+	[root@kuber-master ~]# angelina -J -k
+
+6.创建一个job：
+	
+	[root@kuber-master ~]# angelina -n jobName -t template -i inputDir -o glusterfsVolumeMountPoint
+
+7.使用配置文件创建job（config.json由angelina -g conf产生）：
+
+	[root@kuber-master ~]# angelina -c config.json
+
+8.保存一个新的任务流模板：
+
+	[root@kuber-master ~]# angelina -p pipeline.json
+
+9.在创建job时，使用临时模板，不使用已有模板，需要提供临时模板文件：
+
+	[root@kuber-master ~]# angelina -n jobName -t tmpPipeline.json  -i inputDir -o glusterfsVolumeMountPoint
+
+10.删除指定job：
+
+	[root@kuber-master ~]# angelina -d jobName
+
+11.删除所有job：
+
+	[root@kuber-master ~]# angelina -F
+
+12.使用batch run模式运行job：
+
+	[root@kuber-master ~]# angelina -n jobName -t template  -i inputDir -o glusterfsVolumeMountPoint -b -S "_"
+ 
+ inputDir的内容可以像下面这种样子，多个样本放在一起：
+
+	[root@virt2 fqfile]# ll
+	total 39060
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui1_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:52 mahui1_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui2_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:51 mahui2_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui3_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:51 mahui3_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui4_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:51 mahui4_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui5_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:51 mahui5_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui6_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:51 mahui6_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:51 mahui7_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:51 mahui7_test_R2.fastq.gz
+	-rw-r--r-- 1 root root 2178112 Jun  3 18:52 mahui8_test_R1.fq.gz
+	-rw-r--r-- 1 root root 2261739 Jun  3 18:52 mahui8_test_R2.fq.gz
+	-rw-r--r-- 1 root root 2178112 May  2 10:22 mahui_test_R1.fastq.gz
+	-rw-r--r-- 1 root root 2261739 May  2 10:22 mahui_test_R2.fastq.gz
+	-rw-r--r-- 1 root root       0 Jun  3 19:59 yang1
+
+13.给模板参数运行时动态传入值，如果在模板的params域有一个key为THREAD,制作模板的时候设置值为2，那么我在运行job时可以做如下修改：
+
+	[root@kuber-master ~]# angelina -n jobName -t template  -i inputDir -o glusterfsVolumeMountPoint  -e THREAD=5
+
+14.当在运行job时，某个step运行失败，如果再次运行该job，只会从运行失败的step开始运行，如果需要从第一步重新运行，使用-f选项：
+
+	[root@kuber-master ~]# angelina -n jobName -t template  -i inputDir -o glusterfsVolumeMountPoint -f
+
+15.如果启用邮件通知功能，每隔一段时间（这个时间由用户指定），会向事先定义好的邮箱通知在该时间段之内运行完成的任务的状态（成功或者失败），使用-C可以取消在该时间段内需要发送邮件的job：
+
+	[root@kuber-master ~]# angelina -C
 
 **一个简单的模板例子**
 	
@@ -528,7 +662,7 @@ step域说明：
 
 3.初始化模板：
 
-	[root@kuber-master docker]# angelina -s pipeline.json
+	[root@kuber-master docker]# angelina -p pipeline.json
 
 	在初始化过程中，会对模板进行严格校验，请按照模板要求填写：
 	
@@ -552,7 +686,6 @@ step域说明：
 		"input-directory": "/root/biofile/sample/input", //输入目录
 		"glusterfs-entry-directory": "/mnt/data",  // glusterfs data-volume的挂载点
 		"sample-name": "test",  //作业名
-		"redis-address":"",   // redis server 地址，如果为空，必须设置REDISADDR环境变量
 		"template-env": ["REDIS=33","YANG=33"],  // 模板的params参数，在这里可以动态传入
 		"pipeline-template-name": "test", // 模板名称
 		"force-to-cover": "yes" // 是否强制覆盖上次的内容
@@ -569,7 +702,7 @@ step域说明：
 	                                                      Running  Status                                             
 	*******************************************************************************************************************************
 	Software          Name: angelina
-	Software       Version: v2.0
+	Software       Version: v2.3
 	Template          Name: test
 	Template Estimate Time: 0h 0m 0s
 	Running Sample    Name: test
@@ -631,3 +764,5 @@ step域说明：
 	....
 	
 	********************************************************************************
+
+

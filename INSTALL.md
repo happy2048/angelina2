@@ -219,7 +219,7 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 
 	[root@kuber-master config]# kubectl apply -f redis-deployment.yml
 	
-（3） 在kubernetes上创建redis service（这里采用的service是kubernetes的nodePort的方式，另一种是LoadBalancer,这种方式会在每一个kubernetes节点上创建一个监听端口，访问任意一个节点的相应端口都可以访问redis,这里我们选择31000端口，这个需要记住，后面的angelina初始化需要用到）:
+（3） 在kubernetes上创建redis service（这里采用的service是kubernetes的nodePort的方式，另一种是LoadBalancer,这种方式会在每一个kubernetes节点上创建一个监听端口，访问任意一个节点的相应端口都可以访问redis,这里我们选择31000端口）:
 
 	[root@kuber-master config]# cat redis-service.yml 
 	apiVersion: v1
@@ -268,6 +268,7 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 
 	a.KUBER_APISERVER需要根据实际情况修改为kubernetes apiserver的监听地址。
 	b.如果你不需要每次启动时都重新拉取镜像，请删除“imagePullPolicy: Always”这一行，建议删除。
+    c.如果复制粘贴该文件，请把注释去掉
 
 	[root@kuber-master config]# cat angelina-controller-deployment.yml 
 	apiVersion: apps/v1beta1
@@ -289,31 +290,52 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 	    spec:
 	      containers:
 	      - name: angelina-controller
-	        image: happy365/angelina:2.0
+	        image: happy365/angelina-controller:latest  // 拉取镜像
 	        imagePullPolicy: Always
+	        resources:   // 资源不限制
+	          limits:
+	            cpu: "0m"
+	            memory: "0Mi"
+	          requests:
+	            cpu: "0m"
+	            memory: "0Mi"
 	        env:
-	        - name: ANGELINA_REDIS_ADDR
+	        - name: ANGELINA_REDIS_ADDR  // angelina-controller使用该redis作为后端存储
 	          value: angelina-redis
-	        - name: ANGELINA_REDIS_PORT
+	        - name: ANGELINA_REDIS_PORT  // redis在kubernetes service中的端口
 	          value: "6380"
-	        - name: ANGELINA_SERVER
+	        - name: ANGELINA_SERVER  // angelina-controller在kubernetes service中的端口
 	          value: ":6300"
-	        - name: ANGELINA_CONTROLLER_ENTRY
+	        - name: ANGELINA_CONTROLLER_ENTRY // angelina-controller在kubernetes service中的访问端点，供angelina-runner使用
 	          value: "angelina-controller:6300"
-	        - name: NAMESPACE
+	        - name: NAMESPACE  // 使用的命名空间
 	          value: "bio-system"
 	        - name: START_CMD
-	          value: "rundoc.sh"
-	        - name: GLUSTERFS_ENDPOINT
+	          value: "rundoc.sh"  // angelina-runner容器启动命令
+	        - name: GLUSTERFS_ENDPOINT // glusterfs endpoints
 	          value: "glusterfs-cluster"
-	        - name: GLUSTERFS_DATA_VOLUME
+	        - name: GLUSTERFS_DATA_VOLUME  // 数据输出目录挂载卷
 	          value: "data-volume"
-	        - name: GLUSTERFS_REFER_VOLUME
+	        - name: GLUSTERFS_REFER_VOLUME  // 参考数据挂载卷
 	          value: "refer-volume"
 	        - name: ANGELINA_QUOTA
-	          value: "compute-resources"
+	          value: "compute-resources" // 命名空间使用的资源限制名称
 	        - name: KUBER_APISERVER
-	          value: "https://10.61.0.160:6443"
+	          value: "https://10.61.0.160:6443"  // kubernetes apiserver地址，一定要修改。
+	        - name: SMTP_ENABLED  // 对于运行完成的任务，是否启用邮件通知功能。
+	          value: "false"
+	        - name: SMTP_SERVER  // smtp server 
+	          value: ""
+	        - name: SMTP_SERVER_PORT // smtp port
+	          value: ""
+	        - name: EMAIL_TO  // 消息发送给谁
+	          value: ""
+	        - name: EMAIL_SMTP_USER // 邮件服务器邮箱认证用户
+	          value: ""
+	        - name: EMAIL_SMTP_PASS  //密码
+	          value: ""
+	        - name: EMAIL_SEND_INTERVAL // 发送邮件的间隔时间，单位为分钟，30表示每30分钟发送一次邮件，该邮件会把30分钟所有运行完成的job状态发送过去。
+	          value: "30"
 	        ports:
 	        - containerPort: 6300
 	          protocol: UDP
@@ -334,7 +356,7 @@ kubernetes安装可以参考：[kuberntes安装](https://github.com/happy2048/k8
 	        glusterfs:
 	          endpoints: glusterfs-cluster
 	          path: refer-volume
-	          readOnly: true  
+	          readOnly: true
 
 （3）使用如下命令创建：
 
