@@ -375,7 +375,7 @@ step域说明：
 
 9.在创建job时，使用临时模板，不使用已有模板，需要提供临时模板文件：
 
-	[root@kuber-master ~]# angelina -n jobName -t tmpPipeline.json  -i inputDir -o glusterfsVolumeMountPoint
+	[root@kuber-master ~]# angelina -n jobName -T tmpPipeline.json  -i inputDir -o glusterfsVolumeMountPoint
 
 10.删除指定job：
 
