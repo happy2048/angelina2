@@ -105,8 +105,10 @@ func (ctrl *Controller) CreateJob(job string) {
 	ctrl.AppendLogToQueue("Info","start to create job",job)
 	prefix := myutils.GetSamplePrefix(job)
 	ctrl.FinishedJobs.Remove(prefix)
-	ctrl.SendMailJobs.Remove(job + "-*-" + "failed")
-	ctrl.SendMailJobs.Remove(job + "-*-" + "succeed")
+	if ctrl.SmtpEnabled == true {
+		ctrl.SendMailJobs.Remove(job + "-*-" + "failed")
+		ctrl.SendMailJobs.Remove(job + "-*-" + "succeed")
+	}
 	if ctrl.RunningJobs.Contains(job) || ctrl.StartingJobs.Contains(job) {
 		ctrl.AppendLogToQueue("Info","job",job,"has in the RunningJobs or StartingJobs")
 		ctrl.WaitingRunJobs.Remove(job)
